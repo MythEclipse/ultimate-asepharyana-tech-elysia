@@ -1,23 +1,23 @@
-import nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer'
 
 export interface EmailConfig {
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-  fromEmail: string;
-  fromName: string;
+  host: string
+  port: number
+  username: string
+  password: string
+  fromEmail: string
+  fromName: string
 }
 
 export function getEmailConfig(): EmailConfig {
   return {
     host: process.env.SMTP_HOST || '',
-    port: parseInt(process.env.SMTP_PORT || '0'),
+    port: Number.parseInt(process.env.SMTP_PORT || '0'),
     username: process.env.SMTP_USERNAME || '',
     password: process.env.SMTP_PASSWORD || '',
     fromEmail: process.env.FROM_EMAIL || 'noreply@example.com',
     fromName: process.env.FROM_NAME || 'App',
-  };
+  }
 }
 
 export async function sendEmail(
@@ -26,7 +26,7 @@ export async function sendEmail(
   text: string,
   html?: string,
 ): Promise<void> {
-  const config = getEmailConfig();
+  const config = getEmailConfig()
 
   const transporter = nodemailer.createTransport({
     host: config.host,
@@ -36,7 +36,7 @@ export async function sendEmail(
       user: config.username,
       pass: config.password,
     },
-  });
+  })
 
   await transporter.sendMail({
     from: `"${config.fromName}" <${config.fromEmail}>`,
@@ -44,9 +44,9 @@ export async function sendEmail(
     subject,
     text,
     html: html || text,
-  });
+  })
 
-  console.log(`📧 Email sent to ${to}`);
+  console.log(`📧 Email sent to ${to}`)
 }
 
 export async function sendVerificationEmail(
@@ -54,10 +54,10 @@ export async function sendVerificationEmail(
   username: string,
   token: string,
 ): Promise<void> {
-  const verificationUrl = `${process.env.APP_URL || 'https://elysia.asepharyana.tech'}/api/auth/verify?token=${token}`;
+  const verificationUrl = `${process.env.APP_URL || 'https://elysia.asepharyana.tech'}/api/auth/verify?token=${token}`
 
-  const subject = 'Verify Your Email Address';
-  const text = `Hello ${username},\n\nPlease verify your email by clicking: ${verificationUrl}\n\nThis link expires in 24 hours.`;
+  const subject = 'Verify Your Email Address'
+  const text = `Hello ${username},\n\nPlease verify your email by clicking: ${verificationUrl}\n\nThis link expires in 24 hours.`
   const html = `
     <h2>Welcome ${username}!</h2>
     <p>Please verify your email address by clicking the button below:</p>
@@ -66,9 +66,9 @@ export async function sendVerificationEmail(
     </a>
     <p>Or copy and paste this link: ${verificationUrl}</p>
     <p>This link expires in 24 hours.</p>
-  `;
+  `
 
-  await sendEmail(email, subject, text, html);
+  await sendEmail(email, subject, text, html)
 }
 
 export async function sendPasswordResetEmail(
@@ -76,10 +76,10 @@ export async function sendPasswordResetEmail(
   username: string,
   token: string,
 ): Promise<void> {
-  const resetUrl = `${process.env.APP_URL || 'https://elysia.asepharyana.tech'}/reset-password?token=${token}`;
+  const resetUrl = `${process.env.APP_URL || 'https://elysia.asepharyana.tech'}/reset-password?token=${token}`
 
-  const subject = 'Reset Your Password';
-  const text = `Hello ${username},\n\nReset your password by clicking: ${resetUrl}\n\nThis link expires in 1 hour.\nIf you didn't request this, please ignore this email.`;
+  const subject = 'Reset Your Password'
+  const text = `Hello ${username},\n\nReset your password by clicking: ${resetUrl}\n\nThis link expires in 1 hour.\nIf you didn't request this, please ignore this email.`
   const html = `
     <h2>Password Reset Request</h2>
     <p>Hello ${username},</p>
@@ -90,7 +90,7 @@ export async function sendPasswordResetEmail(
     <p>Or copy and paste this link: ${resetUrl}</p>
     <p>This link expires in 1 hour.</p>
     <p>If you didn't request this, please ignore this email.</p>
-  `;
+  `
 
-  await sendEmail(email, subject, text, html);
+  await sendEmail(email, subject, text, html)
 }

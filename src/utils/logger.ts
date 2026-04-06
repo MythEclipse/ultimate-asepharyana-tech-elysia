@@ -3,59 +3,59 @@
  * Provides consistent logging format across all API and WebSocket handlers
  */
 
-type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
+type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG'
 
 interface LogContext {
-  userId?: string;
-  sessionId?: string;
-  requestId?: string;
-  ip?: string;
-  method?: string;
-  path?: string;
-  [key: string]: unknown;
+  userId?: string
+  sessionId?: string
+  requestId?: string
+  ip?: string
+  method?: string
+  path?: string
+  [key: string]: unknown
 }
 
-const getTimestamp = (): string => {
-  return new Date().toISOString();
-};
+function getTimestamp(): string {
+  return new Date().toISOString()
+}
 
-const formatContext = (context?: LogContext): string => {
-  if (!context || Object.keys(context).length === 0) return '';
-  const parts: string[] = [];
-  if (context.userId) parts.push(`user=${context.userId}`);
-  if (context.sessionId) parts.push(`session=${context.sessionId}`);
-  if (context.requestId) parts.push(`req=${context.requestId}`);
-  if (context.ip) parts.push(`ip=${context.ip}`);
+function formatContext(context?: LogContext): string {
+  if (!context || Object.keys(context).length === 0)
+    return ''
+  const parts: string[] = []
+  if (context.userId)
+    parts.push(`user=${context.userId}`)
+  if (context.sessionId)
+    parts.push(`session=${context.sessionId}`)
+  if (context.requestId)
+    parts.push(`req=${context.requestId}`)
+  if (context.ip)
+    parts.push(`ip=${context.ip}`)
   if (context.method && context.path)
-    parts.push(`${context.method} ${context.path}`);
-  return parts.length > 0 ? ` [${parts.join(', ')}]` : '';
-};
+    parts.push(`${context.method} ${context.path}`)
+  return parts.length > 0 ? ` [${parts.join(', ')}]` : ''
+}
 
-const log = (
-  level: LogLevel,
-  prefix: string,
-  message: string,
-  context?: LogContext,
-  data?: unknown,
-): void => {
-  const timestamp = getTimestamp();
-  const contextStr = formatContext(context);
-  const logFn =
-    level === 'ERROR'
+function log(level: LogLevel, prefix: string, message: string, context?: LogContext, data?: unknown): void {
+  const timestamp = getTimestamp()
+  const contextStr = formatContext(context)
+  const logFn
+    = level === 'ERROR'
       ? console.error
       : level === 'WARN'
         ? console.warn
-        : console.log;
+        : console.log
 
   if (data !== undefined) {
     logFn(
       `[${timestamp}] [${level}] [${prefix}]${contextStr} ${message}`,
       data,
-    );
-  } else {
-    logFn(`[${timestamp}] [${level}] [${prefix}]${contextStr} ${message}`);
+    )
   }
-};
+  else {
+    logFn(`[${timestamp}] [${level}] [${prefix}]${contextStr} ${message}`)
+  }
+}
 
 // Auth Logger
 export const authLogger = {
@@ -81,7 +81,7 @@ export const authLogger = {
     log('INFO', 'AUTH', `Password reset requested for ${email}`),
   emailVerified: (userId: string, email: string) =>
     log('INFO', 'AUTH', `Email verified for ${email}`, { userId }),
-};
+}
 
 // API Logger
 export const apiLogger = {
@@ -101,7 +101,7 @@ export const apiLogger = {
     ),
   error: (method: string, path: string, error: unknown) =>
     log('ERROR', 'API', `Error processing request`, { method, path }, error),
-};
+}
 
 // History Logger
 export const historyLogger = {
@@ -109,7 +109,7 @@ export const historyLogger = {
     log('INFO', 'HISTORY', `Fetched ${count} matches for user`, { userId }),
   fetchError: (userId: string, error: unknown) =>
     log('ERROR', 'HISTORY', `Failed to fetch history`, { userId }, error),
-};
+}
 
 // Chat Logger
 export const chatLogger = {
@@ -125,7 +125,7 @@ export const chatLogger = {
     log('INFO', 'CHAT', `User left room ${roomId}`, { userId }),
   error: (action: string, error: unknown) =>
     log('ERROR', 'CHAT', `Error: ${action}`, undefined, error),
-};
+}
 
 // WebSocket Logger
 export const wsLogger = {
@@ -147,7 +147,7 @@ export const wsLogger = {
     log('ERROR', 'WS', `Error`, { sessionId }, error),
   authenticated: (sessionId: string, userId: string, username: string) =>
     log('INFO', 'WS', `User authenticated: ${username}`, { sessionId, userId }),
-};
+}
 
 // Friend System Logger
 export const friendLogger = {
@@ -177,7 +177,7 @@ export const friendLogger = {
     log('INFO', 'FRIEND', `Match invite rejected`, { userId }),
   error: (action: string, error: unknown) =>
     log('ERROR', 'FRIEND', `Error: ${action}`, undefined, error),
-};
+}
 
 // Match/Game Logger
 export const matchLogger = {
@@ -208,7 +208,7 @@ export const matchLogger = {
     ),
   error: (matchId: string, error: unknown) =>
     log('ERROR', 'MATCH', `Error in match ${matchId}`, undefined, error),
-};
+}
 
 // Queue Logger
 export const queueLogger = {
@@ -228,7 +228,7 @@ export const queueLogger = {
     ),
   timeout: (userId: string) =>
     log('INFO', 'QUEUE', `Queue timeout for user`, { userId }),
-};
+}
 
 // Leaderboard Logger
 export const leaderboardLogger = {
@@ -242,7 +242,7 @@ export const leaderboardLogger = {
     log('DEBUG', 'LEADERBOARD', `Updated user points: ${points}`, { userId }),
   error: (action: string, error: unknown) =>
     log('ERROR', 'LEADERBOARD', `Error: ${action}`, undefined, error),
-};
+}
 
 // Lobby Logger
 export const lobbyLogger = {
@@ -257,7 +257,7 @@ export const lobbyLogger = {
   closed: (lobbyId: string) => log('INFO', 'LOBBY', `Lobby closed: ${lobbyId}`),
   error: (lobbyId: string, error: unknown) =>
     log('ERROR', 'LOBBY', `Error in lobby ${lobbyId}`, undefined, error),
-};
+}
 
 export default {
   auth: authLogger,
@@ -270,4 +270,4 @@ export default {
   queue: queueLogger,
   leaderboard: leaderboardLogger,
   lobby: lobbyLogger,
-};
+}

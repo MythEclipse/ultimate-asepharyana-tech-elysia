@@ -1,42 +1,43 @@
-import Elysia from 'elysia';
-import cors from '@elysiajs/cors';
-import jwt from '@elysiajs/jwt';
-import { swagger } from '@elysiajs/swagger';
-import { authRoutes } from './routes/auth';
+import cors from '@elysiajs/cors'
+import jwt from '@elysiajs/jwt'
+import { swagger } from '@elysiajs/swagger'
+import Elysia from 'elysia'
+import { config } from './config'
 
-import { logger } from './middleware';
-import { errorHandler } from './middleware/errorHandler';
-import { rateLimit } from './middleware/rateLimit';
-import { config } from './config';
-import { initializeDb, closeDb } from './services';
-import { getRedis } from './utils/redis';
+import { logger } from './middleware'
+import { errorHandler } from './middleware/errorHandler'
+import { rateLimit } from './middleware/rateLimit'
+import { authRoutes } from './routes/auth'
+import { closeDb, initializeDb } from './services'
+import { getRedis } from './utils/redis'
 
-let isDbInitialized = false;
+let isDbInitialized = false
 
 // Initialize database and Redis connectionsa
-const initializeConnections = async () => {
+async function initializeConnections() {
   try {
     // Connect to database
     if (!isDbInitialized) {
-      initializeDb(config.databaseUrl);
-      isDbInitialized = true;
-      console.log('✅ Database connected successfully');
+      initializeDb(config.databaseUrl)
+      isDbInitialized = true
+      console.log('✅ Database connected successfully')
     }
 
     // Connect to Redis
-    const redis = getRedis();
-    await redis.connect();
-  } catch (error) {
-    console.error('Failed to initialize connections:', error);
+    const redis = getRedis()
+    await redis.connect()
   }
-};
+  catch (error) {
+    console.error('Failed to initialize connections:', error)
+  }
+}
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down gracefully...');
-  await closeDb();
-  process.exit(0);
-});
+  console.log('\n🛑 Shutting down gracefully...')
+  await closeDb()
+  process.exit(0)
+})
 
 export const app = new Elysia()
   .use(errorHandler) // Global error handling
@@ -119,37 +120,36 @@ export const app = new Elysia()
     database: config.databaseUrl ? 'connected' : 'not configured',
   }))
   .use(authRoutes)
-  ;
 
 // Graceful shutdown handler
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, closing gracefully...');
+  console.log('SIGTERM received, closing gracefully...')
   try {
-    await closeDb();
-    process.exit(0);
-  } catch (error) {
-    console.error('Error during shutdown:', error);
-    process.exit(1);
+    await closeDb()
+    process.exit(0)
   }
-});
+  catch (error) {
+    console.error('Error during shutdown:', error)
+    process.exit(1)
+  }
+})
 
 // Start the server
 initializeConnections().then(() => {
-  const host = process.env.HOST || '0.0.0.0';
+  const host = process.env.HOST || '0.0.0.0'
   app.listen({
     port: config.port,
     hostname: host,
-  });
+  })
 
   console.log(
     `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
-  );
-  console.log(`📝 Environment: ${config.env}`);
+  )
+  console.log(`📝 Environment: ${config.env}`)
   console.log(
     `🔐 Auth endpoints: http://${app.server?.hostname}:${app.server?.port}/api/auth`,
-  );
+  )
   console.log(
     `📚 Swagger docs: http://${app.server?.hostname}:${app.server?.port}/docs`,
-  );
-});
-
+  )
+})

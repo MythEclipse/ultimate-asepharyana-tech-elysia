@@ -1,31 +1,30 @@
-import { Elysia, t } from 'elysia';
-import bcrypt from 'bcryptjs';
-import { getDb, users, sessions } from '../../services';
-import type { NewSession } from '../../services';
-import { eq } from '../../services';
-import { signJWT } from '../../utils/jwt';
-import { rateLimit } from '../../middleware/rateLimit';
-import { sanitizeEmail } from '../../utils/validation';
-import { authLogger } from '../../utils/logger';
+import type { NewSession } from '../../services'
+import bcrypt from 'bcryptjs'
+import { Elysia, t } from 'elysia'
+import { rateLimit } from '../../middleware/rateLimit'
+import { eq, getDb, sessions, users } from '../../services'
+import { signJWT } from '../../utils/jwt'
+import { authLogger } from '../../utils/logger'
+import { sanitizeEmail } from '../../utils/validation'
 
 interface LoginBody {
-  email: string;
-  password: string;
-  rememberMe?: boolean;
+  email: string
+  password: string
+  rememberMe?: boolean
 }
 
 export interface LoginResponse {
-  success: boolean;
+  success: boolean
   user: {
-    id: string;
-    email: string;
-    name: string | null;
-    emailVerified: Date | null;
-  };
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
-  expiresIn: number;
+    id: string
+    email: string
+    name: string | null
+    emailVerified: Date | null
+  }
+  accessToken: string
+  refreshToken: string
+  tokenType: string
+  expiresIn: number
 }
 
 export const loginRoute = new Elysia()
@@ -39,40 +38,40 @@ export const loginRoute = new Elysia()
   .post(
     '/login',
     async ({ body, set }): Promise<LoginResponse> => {
-      const db = getDb();
-      const { email, password, rememberMe } = body as LoginBody;
+      const db = getDb()
+      const { email, password, rememberMe } = body as LoginBody
 
-      authLogger.loginAttempt(email);
+      authLogger.loginAttempt(email)
 
-      const sanitizedEmail = sanitizeEmail(email);
+      const sanitizedEmail = sanitizeEmail(email)
       if (!sanitizedEmail) {
-        authLogger.loginFailed(email, 'Invalid email format');
-        set.status = 400;
-        throw new Error('Invalid email format');
+        authLogger.loginFailed(email, 'Invalid email format')
+        set.status = 400
+        throw new Error('Invalid email format')
       }
 
       const result = await db
         .select()
         .from(users)
         .where(eq(users.email, sanitizedEmail))
-        .limit(1);
+        .limit(1)
 
-      const user = result[0];
+      const user = result[0]
 
       if (!user || !user.password) {
-        authLogger.loginFailed(sanitizedEmail, 'User not found or no password');
-        set.status = 401;
-        throw new Error('Invalid credentials');
+        authLogger.loginFailed(sanitizedEmail, 'User not found or no password')
+        set.status = 401
+        throw new Error('Invalid credentials')
       }
 
-      const passwordValid = await bcrypt.compare(password, user.password);
+      const passwordValid = await bcrypt.compare(password, user.password)
       if (!passwordValid) {
-        authLogger.loginFailed(sanitizedEmail, 'Invalid password');
-        set.status = 401;
-        throw new Error('Invalid credentials');
+        authLogger.loginFailed(sanitizedEmail, 'Invalid password')
+        set.status = 401
+        throw new Error('Invalid credentials')
       }
 
-      const tokenExpiry = rememberMe ? 30 * 24 * 3600 : 24 * 3600;
+      const tokenExpiry = rememberMe ? 30 * 24 * 3600 : 24 * 3600
 
       const accessToken = await signJWT(
         {
@@ -81,21 +80,21 @@ export const loginRoute = new Elysia()
           name: user.name || '',
         },
         tokenExpiry,
-      );
+      )
 
-      const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      const sessionToken = `session_${user.id}_${Date.now()}`;
+      const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      const sessionToken = `session_${user.id}_${Date.now()}`
 
       const newSession: NewSession = {
         id: `sess_${Date.now()}_${user.id}`,
         userId: user.id,
-        sessionToken: sessionToken,
+        sessionToken,
         expires: refreshExpiresAt,
-      };
+      }
 
-      await db.insert(sessions).values(newSession);
+      await db.insert(sessions).values(newSession)
 
-      authLogger.loginSuccess(user.id, sanitizedEmail);
+      authLogger.loginSuccess(user.id, sanitizedEmail)
 
       return {
         success: true,
@@ -109,7 +108,7 @@ export const loginRoute = new Elysia()
         refreshToken: sessionToken,
         tokenType: 'Bearer',
         expiresIn: tokenExpiry,
-      };
+      }
     },
     {
       body: t.Object({
@@ -118,4 +117,4 @@ export const loginRoute = new Elysia()
         rememberMe: t.Optional(t.Boolean()),
       }),
     },
-  );
+  )

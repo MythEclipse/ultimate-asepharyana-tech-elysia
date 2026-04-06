@@ -1,5 +1,5 @@
-import { Client } from 'minio';
-import { config } from '../config';
+import { Client } from 'minio'
+import { config } from '../config'
 
 const minioClient = new Client({
   endPoint: config.minio.endPoint,
@@ -7,44 +7,39 @@ const minioClient = new Client({
   useSSL: config.minio.useSSL,
   accessKey: config.minio.accessKey,
   secretKey: config.minio.secretKey,
-});
+})
 
-export const ensureBucket = async (bucket: string) => {
-  const exists = await minioClient.bucketExists(bucket).catch(() => false);
+export async function ensureBucket(bucket: string) {
+  const exists = await minioClient.bucketExists(bucket).catch(() => false)
   if (!exists) {
-    await minioClient.makeBucket(bucket, config.minio.region || 'us-east-1');
+    await minioClient.makeBucket(bucket, config.minio.region || 'us-east-1')
   }
-};
+}
 
-export const buildPublicUrl = (bucket: string, objectName: string) => {
+export function buildPublicUrl(bucket: string, objectName: string) {
   if (config.minio.publicUrl) {
-    const base = config.minio.publicUrl.replace(/\/$/, '');
-    return `${base}/${bucket}/${objectName}`;
+    const base = config.minio.publicUrl.replace(/\/$/, '')
+    return `${base}/${bucket}/${objectName}`
   }
-  const protocol = config.minio.useSSL ? 'https' : 'http';
-  const host = config.minio.endPoint;
-  const port = config.minio.port ? `:${config.minio.port}` : '';
-  return `${protocol}://${host}${port}/${bucket}/${objectName}`;
-};
+  const protocol = config.minio.useSSL ? 'https' : 'http'
+  const host = config.minio.endPoint
+  const port = config.minio.port ? `:${config.minio.port}` : ''
+  return `${protocol}://${host}${port}/${bucket}/${objectName}`
+}
 
-export const putObject = async (
-  bucket: string,
-  objectName: string,
-  data: Buffer | string,
-  size?: number,
-  contentType?: string,
-): Promise<unknown> => {
-  await ensureBucket(bucket);
+export async function putObject(bucket: string, objectName: string, data: Buffer | string, size?: number, contentType?: string): Promise<unknown> {
+  await ensureBucket(bucket)
   return minioClient.putObject(bucket, objectName, data, size, {
     'Content-Type': contentType || 'application/octet-stream',
     'Cache-Control': 'public, max-age=31536000, immutable',
-  });
-};
+  })
+}
 
-export const deleteObject = async (bucket: string, objectName: string) => {
+export async function deleteObject(bucket: string, objectName: string) {
   try {
-    await minioClient.removeObject(bucket, objectName);
-  } catch {
+    await minioClient.removeObject(bucket, objectName)
+  }
+  catch {
     // ignore
   }
-};
+}

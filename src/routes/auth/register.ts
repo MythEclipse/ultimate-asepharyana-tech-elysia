@@ -1,62 +1,62 @@
-import { Elysia, t } from 'elysia';
-import bcrypt from 'bcryptjs';
+import type { NewEmailVerificationToken, NewUser } from '../../services'
+import bcrypt from 'bcryptjs'
+import { Elysia, t } from 'elysia'
+import { rateLimit } from '../../middleware/rateLimit'
 import {
-  getDb,
-  users,
   emailVerificationTokens,
+  eq,
+  getDb,
   quizUserStats,
-} from '../../services';
-import type { NewUser, NewEmailVerificationToken } from '../../services';
-import { eq } from '../../services';
-import { sendVerificationEmail } from '../../utils/email';
-import { rateLimit } from '../../middleware/rateLimit';
-import { sanitizeEmail, sanitizeString } from '../../utils/validation';
-import { authLogger } from '../../utils/logger';
+  users,
+} from '../../services'
+import { sendVerificationEmail } from '../../utils/email'
+import { authLogger } from '../../utils/logger'
+import { sanitizeEmail, sanitizeString } from '../../utils/validation'
 
 function generateToken(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join(
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join(
     '',
-  );
+  )
 }
 
 interface RegisterBody {
-  email: string;
-  name?: string;
-  password: string;
+  email: string
+  name?: string
+  password: string
 }
 
 export interface RegisterResponse {
-  success: boolean;
-  message: string;
+  success: boolean
+  message: string
   user: {
-    id: string;
-    email: string;
-    name: string | null;
-    emailVerified: Date | null;
-  };
+    id: string
+    email: string
+    name: string | null
+    emailVerified: Date | null
+  }
 }
 
 function validatePassword(password: string): string | null {
   if (password.length < 8) {
-    return 'Password must be at least 8 characters';
+    return 'Password must be at least 8 characters'
   }
 
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasLowercase = /[a-z]/.test(password);
-  const hasDigit = /\d/.test(password);
-  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  const hasUppercase = /[A-Z]/.test(password)
+  const hasLowercase = /[a-z]/.test(password)
+  const hasDigit = /\d/.test(password)
+  const hasSpecial = /[^A-Z0-9]/i.test(password)
 
   if (!hasUppercase || !hasLowercase || !hasDigit) {
-    return 'Password must contain uppercase, lowercase, and numbers';
+    return 'Password must contain uppercase, lowercase, and numbers'
   }
 
   if (!hasSpecial) {
-    return 'Password should contain at least one special character';
+    return 'Password should contain at least one special character'
   }
 
-  return null;
+  return null
 }
 
 export const registerRoute = new Elysia()
@@ -70,41 +70,41 @@ export const registerRoute = new Elysia()
   .post(
     '/register',
     async ({ body, set }): Promise<RegisterResponse> => {
-      const db = getDb();
-      const { email, name, password } = body as RegisterBody;
+      const db = getDb()
+      const { email, name, password } = body as RegisterBody
 
-      authLogger.registerAttempt(email);
+      authLogger.registerAttempt(email)
 
-      const sanitizedEmail = sanitizeEmail(email);
+      const sanitizedEmail = sanitizeEmail(email)
       if (!sanitizedEmail) {
-        authLogger.registerFailed(email, 'Invalid email format');
-        set.status = 400;
-        throw new Error('Invalid email format');
+        authLogger.registerFailed(email, 'Invalid email format')
+        set.status = 400
+        throw new Error('Invalid email format')
       }
 
-      const sanitizedName = name ? sanitizeString(name) : null;
+      const sanitizedName = name ? sanitizeString(name) : null
 
-      const passwordError = validatePassword(password);
+      const passwordError = validatePassword(password)
       if (passwordError) {
-        authLogger.registerFailed(sanitizedEmail, passwordError);
-        set.status = 400;
-        throw new Error(passwordError);
+        authLogger.registerFailed(sanitizedEmail, passwordError)
+        set.status = 400
+        throw new Error(passwordError)
       }
 
       const existingUserResult = await db
         .select()
         .from(users)
         .where(eq(users.email, sanitizedEmail))
-        .limit(1);
+        .limit(1)
 
       if (existingUserResult.length > 0) {
-        authLogger.registerFailed(sanitizedEmail, 'Email already exists');
-        set.status = 400;
-        throw new Error('Email already exists');
+        authLogger.registerFailed(sanitizedEmail, 'Email already exists')
+        set.status = 400
+        throw new Error('Email already exists')
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      const hashedPassword = await bcrypt.hash(password, 10)
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`
 
       const newUser: NewUser = {
         id: userId,
@@ -115,14 +115,14 @@ export const registerRoute = new Elysia()
         image: null,
         refreshToken: null,
         role: 'user',
-      };
+      }
 
-      await db.insert(users).values(newUser);
+      await db.insert(users).values(newUser)
 
       // Initialize user stats
       await db.insert(quizUserStats).values({
         id: `qus_${userId}`,
-        userId: userId,
+        userId,
         points: 0,
         wins: 0,
         losses: 0,
@@ -135,26 +135,27 @@ export const registerRoute = new Elysia()
         totalCorrectAnswers: 0,
         totalQuestions: 0,
         level: 1,
-      });
+      })
 
-      const verificationToken = generateToken();
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const verificationToken = generateToken()
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
 
       const newToken: NewEmailVerificationToken = {
         id: `evt_${Date.now()}_${userId}`,
-        userId: userId,
+        userId,
         token: verificationToken,
-        expiresAt: expiresAt,
-      };
+        expiresAt,
+      }
 
-      await db.insert(emailVerificationTokens).values(newToken);
+      await db.insert(emailVerificationTokens).values(newToken)
 
-      authLogger.registerSuccess(userId, sanitizedEmail);
+      authLogger.registerSuccess(userId, sanitizedEmail)
 
       try {
-        await sendVerificationEmail(email, name || 'User', verificationToken);
-      } catch (error) {
-        console.error('Failed to send verification email:', error);
+        await sendVerificationEmail(email, name || 'User', verificationToken)
+      }
+      catch (error) {
+        console.error('Failed to send verification email:', error)
       }
 
       return {
@@ -167,7 +168,7 @@ export const registerRoute = new Elysia()
           name: sanitizedName,
           emailVerified: null,
         },
-      };
+      }
     },
     {
       body: t.Object({
@@ -176,4 +177,4 @@ export const registerRoute = new Elysia()
         name: t.Optional(t.String()),
       }),
     },
-  );
+  )

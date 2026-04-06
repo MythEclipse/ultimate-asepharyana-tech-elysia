@@ -1,5 +1,5 @@
-import { Elysia } from 'elysia';
-import { verifyJWT } from '../utils/jwt';
+import { Elysia } from 'elysia'
+import { verifyJWT } from '../utils/jwt'
 
 /**
  * Authentication middleware
@@ -7,38 +7,38 @@ import { verifyJWT } from '../utils/jwt';
  */
 export const authMiddleware = new Elysia({ name: 'auth' })
   .onBeforeHandle(async ({ headers, set }) => {
-    const authHeader = headers.authorization;
+    const authHeader = headers.authorization
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      set.status = 401;
+      set.status = 401
       return {
         success: false,
         error: 'Unauthorized: No token provided',
-      };
+      }
     }
 
-    const token = authHeader.substring(7);
-    const payload = await verifyJWT(token);
+    const token = authHeader.substring(7)
+    const payload = await verifyJWT(token)
 
     if (!payload) {
-      set.status = 401;
+      set.status = 401
       return {
         success: false,
         error: 'Unauthorized: Invalid token',
-      };
+      }
     }
   })
   .derive(async ({ headers }) => {
-    const authHeader = headers.authorization;
+    const authHeader = headers.authorization
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return { user: null };
+      return { user: null }
     }
 
-    const token = authHeader.substring(7);
-    const payload = await verifyJWT(token);
+    const token = authHeader.substring(7)
+    const payload = await verifyJWT(token)
 
     if (!payload) {
-      return { user: null };
+      return { user: null }
     }
 
     return {
@@ -47,8 +47,8 @@ export const authMiddleware = new Elysia({ name: 'auth' })
         email: payload.email,
         name: payload.name,
       },
-    };
-  });
+    }
+  })
 
 /**
  * Optional auth middleware
@@ -57,17 +57,17 @@ export const authMiddleware = new Elysia({ name: 'auth' })
 export const optionalAuthMiddleware = new Elysia({
   name: 'optional-auth',
 }).derive(async ({ headers }) => {
-  const authHeader = headers.authorization;
+  const authHeader = headers.authorization
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { user: null };
+    return { user: null }
   }
 
-  const token = authHeader.substring(7);
-  const payload = await verifyJWT(token);
+  const token = authHeader.substring(7)
+  const payload = await verifyJWT(token)
 
   if (!payload) {
-    return { user: null };
+    return { user: null }
   }
 
   return {
@@ -76,5 +76,5 @@ export const optionalAuthMiddleware = new Elysia({
       email: payload.email,
       name: payload.name,
     },
-  };
-});
+  }
+})

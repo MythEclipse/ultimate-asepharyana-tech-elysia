@@ -11,17 +11,18 @@ export const config = {
   // MinIO / S3-compatible storage configuration
   minio: {
     // Accept both host or full URL in MINIO_ENDPOINT
-    ...((): { endPoint: string; port?: number; useSSL: boolean } => {
-      const raw = process.env.MINIO_ENDPOINT || 'localhost';
+    ...((): { endPoint: string, port?: number, useSSL: boolean } => {
+      const raw = process.env.MINIO_ENDPOINT || 'localhost'
       if (raw.startsWith('http://') || raw.startsWith('https://')) {
         try {
-          const u = new URL(raw);
+          const u = new URL(raw)
           return {
             endPoint: u.hostname,
             port: u.port ? Number(u.port) : undefined,
             useSSL: u.protocol === 'https:',
-          };
-        } catch {
+          }
+        }
+        catch {
           // Fallback to host parsing
         }
       }
@@ -31,9 +32,9 @@ export const config = {
           ? Number(process.env.MINIO_PORT)
           : undefined,
         useSSL:
-          process.env.MINIO_USE_SSL === 'true' ||
-          process.env.MINIO_SECURE === 'true',
-      };
+          process.env.MINIO_USE_SSL === 'true'
+          || process.env.MINIO_SECURE === 'true',
+      }
     })(),
     accessKey: process.env.MINIO_ACCESS_KEY || '',
     secretKey: process.env.MINIO_SECRET_KEY || '',
@@ -45,4 +46,4 @@ export const config = {
     // Optional object prefix for avatars
     avatarPrefix: process.env.MINIO_AVATAR_PREFIX || 'avatars',
   },
-};
+}

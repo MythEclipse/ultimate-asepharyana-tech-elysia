@@ -1,13 +1,13 @@
+import { relations } from 'drizzle-orm'
 import {
-  mysqlTable,
-  varchar,
-  timestamp,
-  int,
-  text,
-  primaryKey,
   index,
-} from 'drizzle-orm/mysql-core';
-import { relations } from 'drizzle-orm';
+  int,
+  mysqlTable,
+  primaryKey,
+  text,
+  timestamp,
+  varchar,
+} from 'drizzle-orm/mysql-core'
 
 // User table
 export const users = mysqlTable(
@@ -22,10 +22,10 @@ export const users = mysqlTable(
     refreshToken: text('refresh_token'),
     role: varchar('role', { length: 50 }).notNull().default('user'),
   },
-  (table) => ({
+  table => ({
     emailIdx: index('email_idx').on(table.email),
   }),
-);
+)
 
 // Account table
 export const accounts = mysqlTable(
@@ -48,10 +48,10 @@ export const accounts = mysqlTable(
     id_token: text('id_token'),
     session_state: varchar('session_state', { length: 255 }),
   },
-  (table) => ({
+  table => ({
     userIdIdx: index('userId_idx').on(table.userId),
   }),
-);
+)
 
 // Session table
 export const sessions = mysqlTable(
@@ -64,25 +64,25 @@ export const sessions = mysqlTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     expires: timestamp('expires').notNull(),
   },
-  (table) => ({
+  table => ({
     userIdIdx: index('userId_idx').on(table.userId),
     sessionTokenIdx: index('sessionToken_idx').on(table.sessionToken),
   }),
-);
+)
 
 // Role table
 export const roles = mysqlTable('Role', {
   id: varchar('id', { length: 255 }).primaryKey(),
   name: varchar('name', { length: 255 }).notNull().unique(),
   description: text('description'),
-});
+})
 
 // Permission table
 export const permissions = mysqlTable('Permission', {
   id: varchar('id', { length: 255 }).primaryKey(),
   name: varchar('name', { length: 255 }).notNull().unique(),
   description: text('description'),
-});
+})
 
 // UserRole junction table
 export const userRoles = mysqlTable(
@@ -95,10 +95,10 @@ export const userRoles = mysqlTable(
       .notNull()
       .references(() => roles.id, { onDelete: 'cascade' }),
   },
-  (table) => ({
+  table => ({
     pk: primaryKey({ columns: [table.userId, table.roleId] }),
   }),
-);
+)
 
 // RolePermission junction table
 export const rolePermissions = mysqlTable(
@@ -111,10 +111,10 @@ export const rolePermissions = mysqlTable(
       .notNull()
       .references(() => permissions.id, { onDelete: 'cascade' }),
   },
-  (table) => ({
+  table => ({
     pk: primaryKey({ columns: [table.roleId, table.permissionId] }),
   }),
-);
+)
 
 // Posts table
 export const posts = mysqlTable(
@@ -132,12 +132,12 @@ export const posts = mysqlTable(
     created_at: timestamp('created_at').notNull().defaultNow(),
     updated_at: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
   },
-  (table) => ({
+  table => ({
     userIdIdx: index('userId_idx').on(table.userId),
     authorIdIdx: index('authorId_idx').on(table.authorId),
     createdAtIdx: index('created_at_idx').on(table.created_at),
   }),
-);
+)
 
 // Comments table
 export const comments = mysqlTable(
@@ -157,12 +157,12 @@ export const comments = mysqlTable(
     created_at: timestamp('created_at').notNull().defaultNow(),
     updated_at: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
   },
-  (table) => ({
+  table => ({
     postIdIdx: index('postId_idx').on(table.postId),
     userIdIdx: index('userId_idx').on(table.userId),
     authorIdIdx: index('authorId_idx').on(table.authorId),
   }),
-);
+)
 
 // Likes table
 export const likes = mysqlTable(
@@ -175,10 +175,10 @@ export const likes = mysqlTable(
       .notNull()
       .references(() => posts.id, { onDelete: 'cascade' }),
   },
-  (table) => ({
+  table => ({
     pk: primaryKey({ columns: [table.userId, table.postId] }),
   }),
-);
+)
 
 // Replies table
 export const replies = mysqlTable(
@@ -194,11 +194,11 @@ export const replies = mysqlTable(
     content: text('content').notNull(),
     created_at: timestamp('created_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     commentIdIdx: index('commentId_idx').on(table.commentId),
     userIdIdx: index('userId_idx').on(table.userId),
   }),
-);
+)
 
 // ChatMessage table
 export const chatMessages = mysqlTable(
@@ -215,11 +215,11 @@ export const chatMessages = mysqlTable(
     role: varchar('role', { length: 50 }),
     timestamp: timestamp('timestamp').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     userIdIdx: index('userId_idx').on(table.userId),
     timestampIdx: index('timestamp_idx').on(table.timestamp),
   }),
-);
+)
 
 // EmailVerificationToken table
 export const emailVerificationTokens = mysqlTable(
@@ -233,11 +233,11 @@ export const emailVerificationTokens = mysqlTable(
     expiresAt: timestamp('expires_at').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     userIdIdx: index('userId_idx').on(table.userId),
     tokenIdx: index('token_idx').on(table.token),
   }),
-);
+)
 
 // PasswordResetToken table
 export const passwordResetTokens = mysqlTable(
@@ -252,11 +252,11 @@ export const passwordResetTokens = mysqlTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     used: int('used').notNull().default(0),
   },
-  (table) => ({
+  table => ({
     userIdIdx: index('userId_idx').on(table.userId),
     tokenIdx: index('token_idx').on(table.token),
   }),
-);
+)
 
 // ChatRoom table
 export const chatRooms = mysqlTable(
@@ -269,10 +269,10 @@ export const chatRooms = mysqlTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
   },
-  (table) => ({
+  table => ({
     createdAtIdx: index('createdAt_idx').on(table.createdAt),
   }),
-);
+)
 
 // Update ChatMessage table to reference ChatRoom
 export const chatMessagesWithRoom = mysqlTable(
@@ -289,12 +289,12 @@ export const chatMessagesWithRoom = mysqlTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
   },
-  (table) => ({
+  table => ({
     roomIdIdx: index('roomId_idx').on(table.roomId),
     userIdIdx: index('userId_idx').on(table.userId),
     createdAtIdx: index('createdAt_idx').on(table.createdAt),
   }),
-);
+)
 
 // ChatRoomMember table
 export const chatRoomMembers = mysqlTable(
@@ -310,12 +310,12 @@ export const chatRoomMembers = mysqlTable(
     role: varchar('role', { length: 50 }).notNull().default('member'),
     joinedAt: timestamp('joined_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     pk: primaryKey({ columns: [table.roomId, table.userId] }),
     roomIdIdx: index('roomId_idx').on(table.roomId),
     userIdIdx: index('userId_idx').on(table.userId),
   }),
-);
+)
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
@@ -330,21 +330,21 @@ export const usersRelations = relations(users, ({ many }) => ({
   emailVerificationTokens: many(emailVerificationTokens),
   passwordResetTokens: many(passwordResetTokens),
   chatRoomMembers: many(chatRoomMembers),
-}));
+}))
 
 export const accountsRelations = relations(accounts, ({ one }) => ({
   user: one(users, {
     fields: [accounts.userId],
     references: [users.id],
   }),
-}));
+}))
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
     fields: [sessions.userId],
     references: [users.id],
   }),
-}));
+}))
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
   user: one(users, {
@@ -357,7 +357,7 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   }),
   comments: many(comments),
   likes: many(likes),
-}));
+}))
 
 export const commentsRelations = relations(comments, ({ one, many }) => ({
   user: one(users, {
@@ -373,7 +373,7 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
     references: [users.id],
   }),
   replies: many(replies),
-}));
+}))
 
 export const likesRelations = relations(likes, ({ one }) => ({
   user: one(users, {
@@ -384,7 +384,7 @@ export const likesRelations = relations(likes, ({ one }) => ({
     fields: [likes.postId],
     references: [posts.id],
   }),
-}));
+}))
 
 export const repliesRelations = relations(replies, ({ one }) => ({
   user: one(users, {
@@ -395,23 +395,23 @@ export const repliesRelations = relations(replies, ({ one }) => ({
     fields: [replies.commentId],
     references: [comments.id],
   }),
-}));
+}))
 
 export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   user: one(users, {
     fields: [chatMessages.userId],
     references: [users.id],
   }),
-}));
+}))
 
 export const rolesRelations = relations(roles, ({ many }) => ({
   userRoles: many(userRoles),
   rolePermissions: many(rolePermissions),
-}));
+}))
 
 export const permissionsRelations = relations(permissions, ({ many }) => ({
   rolePermissions: many(rolePermissions),
-}));
+}))
 
 export const userRolesRelations = relations(userRoles, ({ one }) => ({
   user: one(users, {
@@ -422,7 +422,7 @@ export const userRolesRelations = relations(userRoles, ({ one }) => ({
     fields: [userRoles.roleId],
     references: [roles.id],
   }),
-}));
+}))
 
 export const rolePermissionsRelations = relations(
   rolePermissions,
@@ -436,7 +436,7 @@ export const rolePermissionsRelations = relations(
       references: [permissions.id],
     }),
   }),
-);
+)
 
 export const emailVerificationTokensRelations = relations(
   emailVerificationTokens,
@@ -446,7 +446,7 @@ export const emailVerificationTokensRelations = relations(
       references: [users.id],
     }),
   }),
-);
+)
 
 export const passwordResetTokensRelations = relations(
   passwordResetTokens,
@@ -456,12 +456,12 @@ export const passwordResetTokensRelations = relations(
       references: [users.id],
     }),
   }),
-);
+)
 
 export const chatRoomsRelations = relations(chatRooms, ({ many }) => ({
   messages: many(chatMessagesWithRoom),
   members: many(chatRoomMembers),
-}));
+}))
 
 export const chatMessagesWithRoomRelations = relations(
   chatMessagesWithRoom,
@@ -475,7 +475,7 @@ export const chatMessagesWithRoomRelations = relations(
       references: [users.id],
     }),
   }),
-);
+)
 
 export const chatRoomMembersRelations = relations(
   chatRoomMembers,
@@ -489,7 +489,7 @@ export const chatRoomMembersRelations = relations(
       references: [users.id],
     }),
   }),
-);
+)
 
 // =============================================
 // QUIZ BATTLE SCHEMA
@@ -507,11 +507,11 @@ export const quizQuestions = mysqlTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
   },
-  (table) => ({
+  table => ({
     categoryIdx: index('category_idx').on(table.category),
     difficultyIdx: index('difficulty_idx').on(table.difficulty),
   }),
-);
+)
 
 // QuizAnswer table - Pilihan jawaban
 export const quizAnswers = mysqlTable(
@@ -524,10 +524,10 @@ export const quizAnswers = mysqlTable(
     text: text('text').notNull(),
     answerIndex: int('answer_index').notNull(), // 0-3
   },
-  (table) => ({
+  table => ({
     questionIdIdx: index('questionId_idx').on(table.questionId),
   }),
-);
+)
 
 // QuizUserStats table - Statistik user
 export const quizUserStats = mysqlTable(
@@ -552,11 +552,11 @@ export const quizUserStats = mysqlTable(
     coins: int('coins').notNull().default(0),
     updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
   },
-  (table) => ({
+  table => ({
     userIdIdx: index('userId_idx').on(table.userId),
     pointsIdx: index('points_idx').on(table.points),
   }),
-);
+)
 
 // QuizMatch table - Data match/pertandingan
 export const quizMatches = mysqlTable(
@@ -585,13 +585,13 @@ export const quizMatches = mysqlTable(
     finishedAt: timestamp('finished_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     player1IdIdx: index('player1Id_idx').on(table.player1Id),
     player2IdIdx: index('player2Id_idx').on(table.player2Id),
     statusIdx: index('status_idx').on(table.status),
     createdAtIdx: index('createdAt_idx').on(table.createdAt),
   }),
-);
+)
 
 // QuizMatchQuestion table - Pertanyaan yang digunakan dalam match
 export const quizMatchQuestions = mysqlTable(
@@ -606,10 +606,10 @@ export const quizMatchQuestions = mysqlTable(
       .references(() => quizQuestions.id, { onDelete: 'cascade' }),
     questionIndex: int('question_index').notNull(),
   },
-  (table) => ({
+  table => ({
     matchIdIdx: index('matchId_idx').on(table.matchId),
   }),
-);
+)
 
 // QuizMatchAnswer table - Jawaban player dalam match
 export const quizMatchAnswers = mysqlTable(
@@ -632,11 +632,11 @@ export const quizMatchAnswers = mysqlTable(
     points: int('points').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     matchIdIdx: index('matchId_idx').on(table.matchId),
     userIdIdx: index('userId_idx').on(table.userId),
   }),
-);
+)
 
 // QuizFriendship table - Sistem pertemanan
 export const quizFriendships = mysqlTable(
@@ -653,13 +653,13 @@ export const quizFriendships = mysqlTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
   },
-  (table) => ({
+  table => ({
     pk: primaryKey({ columns: [table.userId, table.friendId] }),
     userIdIdx: index('userId_idx').on(table.userId),
     friendIdIdx: index('friendId_idx').on(table.friendId),
     statusIdx: index('status_idx').on(table.status),
   }),
-);
+)
 
 // QuizLobby table - Lobby untuk private match
 export const quizLobbies = mysqlTable(
@@ -680,12 +680,12 @@ export const quizLobbies = mysqlTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     expiresAt: timestamp('expires_at').notNull(),
   },
-  (table) => ({
+  table => ({
     lobbyCodeIdx: index('lobbyCode_idx').on(table.lobbyCode),
     hostIdIdx: index('hostId_idx').on(table.hostId),
     statusIdx: index('status_idx').on(table.status),
   }),
-);
+)
 
 // QuizLobbyMember table - Member dalam lobby
 export const quizLobbyMembers = mysqlTable(
@@ -702,12 +702,12 @@ export const quizLobbyMembers = mysqlTable(
     isReady: int('is_ready').notNull().default(0),
     joinedAt: timestamp('joined_at').notNull().defaultNow(),
   },
-  (table) => ({
+  table => ({
     pk: primaryKey({ columns: [table.lobbyId, table.userId] }),
     lobbyIdIdx: index('lobbyId_idx').on(table.lobbyId),
     userIdIdx: index('userId_idx').on(table.userId),
   }),
-);
+)
 
 // QuizNotification table - Sistem notifikasi
 export const quizNotifications = mysqlTable(
@@ -726,33 +726,33 @@ export const quizNotifications = mysqlTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     expiresAt: timestamp('expires_at'),
   },
-  (table) => ({
+  table => ({
     userIdIdx: index('userId_idx').on(table.userId),
     isReadIdx: index('isRead_idx').on(table.isRead),
     createdAtIdx: index('createdAt_idx').on(table.createdAt),
   }),
-);
+)
 
 // Quiz Battle Relations
 export const quizQuestionsRelations = relations(quizQuestions, ({ many }) => ({
   answers: many(quizAnswers),
   matchQuestions: many(quizMatchQuestions),
   matchAnswers: many(quizMatchAnswers),
-}));
+}))
 
 export const quizAnswersRelations = relations(quizAnswers, ({ one }) => ({
   question: one(quizQuestions, {
     fields: [quizAnswers.questionId],
     references: [quizQuestions.id],
   }),
-}));
+}))
 
 export const quizUserStatsRelations = relations(quizUserStats, ({ one }) => ({
   user: one(users, {
     fields: [quizUserStats.userId],
     references: [users.id],
   }),
-}));
+}))
 
 export const quizMatchesRelations = relations(quizMatches, ({ one, many }) => ({
   player1: one(users, {
@@ -769,7 +769,7 @@ export const quizMatchesRelations = relations(quizMatches, ({ one, many }) => ({
   }),
   matchQuestions: many(quizMatchQuestions),
   matchAnswers: many(quizMatchAnswers),
-}));
+}))
 
 export const quizMatchQuestionsRelations = relations(
   quizMatchQuestions,
@@ -783,7 +783,7 @@ export const quizMatchQuestionsRelations = relations(
       references: [quizQuestions.id],
     }),
   }),
-);
+)
 
 export const quizMatchAnswersRelations = relations(
   quizMatchAnswers,
@@ -801,7 +801,7 @@ export const quizMatchAnswersRelations = relations(
       references: [quizQuestions.id],
     }),
   }),
-);
+)
 
 export const quizFriendshipsRelations = relations(
   quizFriendships,
@@ -815,7 +815,7 @@ export const quizFriendshipsRelations = relations(
       references: [users.id],
     }),
   }),
-);
+)
 
 export const quizLobbiesRelations = relations(quizLobbies, ({ one, many }) => ({
   host: one(users, {
@@ -823,7 +823,7 @@ export const quizLobbiesRelations = relations(quizLobbies, ({ one, many }) => ({
     references: [users.id],
   }),
   members: many(quizLobbyMembers),
-}));
+}))
 
 export const quizLobbyMembersRelations = relations(
   quizLobbyMembers,
@@ -837,7 +837,7 @@ export const quizLobbyMembersRelations = relations(
       references: [users.id],
     }),
   }),
-);
+)
 
 export const quizNotificationsRelations = relations(
   quizNotifications,
@@ -847,7 +847,7 @@ export const quizNotificationsRelations = relations(
       references: [users.id],
     }),
   }),
-);
+)
 
 // =============================================
 // IMAGE CACHE SCHEMA
@@ -863,7 +863,7 @@ export const imageCache = mysqlTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     expiresAt: timestamp('expires_at'),
   },
-  (table) => ({
+  table => ({
     originalUrlIdx: index('originalUrl_idx').on(table.originalUrl),
   }),
-);
+)

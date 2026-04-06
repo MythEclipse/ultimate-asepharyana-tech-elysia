@@ -1,8 +1,7 @@
 // Seed script untuk populate Quiz Questions
 // Run: bun run apps/elysia/scripts/seed-questions.ts
 
-import { getDb, initializeDb } from '@asepharyana/services';
-import { quizQuestions, quizAnswers } from '@asepharyana/services';
+import { getDb, initializeDb, quizAnswers, quizQuestions } from '@asepharyana/services'
 
 // Sample questions data
 const sampleQuestions = [
@@ -110,7 +109,7 @@ const sampleQuestions = [
   {
     category: 'Sports',
     difficulty: 'medium',
-    text: "Siapa pemain sepak bola dengan gelar Ballon d'Or terbanyak?",
+    text: 'Siapa pemain sepak bola dengan gelar Ballon d\'Or terbanyak?',
     answers: [
       'Cristiano Ronaldo',
       'Lionel Messi',
@@ -841,27 +840,27 @@ const sampleQuestions = [
     answers: ['Oksigen', 'Nitrogen', 'CO2', 'Helium'],
     correctAnswer: 2,
   },
-];
+]
 
 async function seedQuestions() {
   try {
     // Initialize database
-    const databaseUrl = process.env.DATABASE_URL;
+    const databaseUrl = process.env.DATABASE_URL
     if (!databaseUrl) {
-      throw new Error('DATABASE_URL not found in environment variables');
+      throw new Error('DATABASE_URL not found in environment variables')
     }
 
-    initializeDb(databaseUrl);
-    const db = getDb();
+    initializeDb(databaseUrl)
+    const db = getDb()
 
-    console.log('🌱 Starting to seed questions...');
+    console.log('🌱 Starting to seed questions...')
 
-    let totalQuestions = 0;
-    let totalAnswers = 0;
+    let totalQuestions = 0
+    let totalAnswers = 0
 
     for (const question of sampleQuestions) {
       // Generate unique ID
-      const questionId = `q_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      const questionId = `q_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 
       // Insert question
       await db.insert(quizQuestions).values({
@@ -870,69 +869,70 @@ async function seedQuestions() {
         category: question.category,
         difficulty: question.difficulty,
         correctAnswer: question.correctAnswer,
-      });
+      })
 
-      totalQuestions++;
-      console.log(`✅ Added question: ${question.text}`);
+      totalQuestions++
+      console.log(`✅ Added question: ${question.text}`)
 
       // Insert answers
       for (let i = 0; i < question.answers.length; i++) {
-        const answerId = `a_${questionId}_${i}`;
+        const answerId = `a_${questionId}_${i}`
 
         await db.insert(quizAnswers).values({
           id: answerId,
-          questionId: questionId,
+          questionId,
           text: question.answers[i],
           answerIndex: i,
-        });
+        })
 
-        totalAnswers++;
+        totalAnswers++
       }
     }
 
-    console.log('\n🎉 Seeding completed!');
-    console.log(`📊 Total questions added: ${totalQuestions}`);
-    console.log(`📊 Total answers added: ${totalAnswers}`);
+    console.log('\n🎉 Seeding completed!')
+    console.log(`📊 Total questions added: ${totalQuestions}`)
+    console.log(`📊 Total answers added: ${totalAnswers}`)
 
     // Show statistics
-    console.log('\n📈 Questions by category:');
+    console.log('\n📈 Questions by category:')
     const categories = sampleQuestions.reduce(
       (acc, q) => {
-        acc[q.category] = (acc[q.category] || 0) + 1;
-        return acc;
+        acc[q.category] = (acc[q.category] || 0) + 1
+        return acc
       },
       {} as Record<string, number>,
-    );
+    )
 
     Object.entries(categories).forEach(([category, count]) => {
-      console.log(`   ${category}: ${count} questions`);
-    });
+      console.log(`   ${category}: ${count} questions`)
+    })
 
-    console.log('\n📈 Questions by difficulty:');
+    console.log('\n📈 Questions by difficulty:')
     const difficulties = sampleQuestions.reduce(
       (acc, q) => {
-        acc[q.difficulty] = (acc[q.difficulty] || 0) + 1;
-        return acc;
+        acc[q.difficulty] = (acc[q.difficulty] || 0) + 1
+        return acc
       },
       {} as Record<string, number>,
-    );
+    )
 
     Object.entries(difficulties).forEach(([difficulty, count]) => {
-      console.log(`   ${difficulty}: ${count} questions`);
-    });
-  } catch (error) {
-    console.error('❌ Error seeding questions:', error);
-    throw error;
+      console.log(`   ${difficulty}: ${count} questions`)
+    })
+  }
+  catch (error) {
+    console.error('❌ Error seeding questions:', error)
+    throw error
   }
 }
 
 // Run the seed function
 seedQuestions()
   .then(() => {
-    console.log('\n✨ Seed script completed successfully!');
-    process.exit(0);
+    console.log('\n✨ Seed script completed successfully!')
+    process.exit(0)
   })
   .catch((error) => {
-    console.error('\n💥 Seed script failed:', error);
-    process.exit(1);
-  });
+    console.error('\n💥 Seed script failed:', error)
+    process.exit(1)
+  })
