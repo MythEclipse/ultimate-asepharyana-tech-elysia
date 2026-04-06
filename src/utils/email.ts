@@ -1,4 +1,5 @@
-import nodemailer from 'nodemailer'
+import nodemailer from 'nodemailer';
+import { systemLogger } from './logger';
 
 export interface EmailConfig {
   host: string
@@ -46,7 +47,7 @@ export async function sendEmail(
     html: html || text,
   })
 
-  console.log(`📧 Email sent to ${to}`)
+  systemLogger.info(`Email sent to ${to}`);
 }
 
 export async function sendVerificationEmail(

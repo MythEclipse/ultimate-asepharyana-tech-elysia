@@ -1,4 +1,5 @@
-import type { Elysia } from 'elysia'
+import type { Elysia } from 'elysia';
+import { apiLogger } from '../utils/logger';
 
 /**
  * Global error handler middleware
@@ -10,12 +11,12 @@ export const errorHandler = (app: Elysia) =>
     const errorStack = error instanceof Error ? error.stack : undefined
     const errorStatus = (error as any)?.status || (error as any)?.code || (typeof code === 'number' ? code : undefined)
 
-    console.error('Error:', {
+    apiLogger.error('ERROR', 'GLOBAL_HANDLER', {
       code,
       status: errorStatus,
       message: errorMessage,
       stack: process.env.NODE_ENV !== 'production' ? errorStack : undefined,
-    })
+    });
 
     // Helper for unified error response
     const respond = (status: number, msg: string, errCode?: string) => {

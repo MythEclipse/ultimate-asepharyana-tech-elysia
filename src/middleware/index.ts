@@ -1,15 +1,15 @@
-import { Elysia } from 'elysia'
+import { Elysia } from 'elysia';
+import { apiLogger } from '../utils/logger';
 
 export const logger = new Elysia()
   .onBeforeHandle(({ request }) => {
-    const timestamp = new Date().toISOString()
-    const method = request.method
-    const url = new URL(request.url)
-    console.log(`[${timestamp}] ${method} ${url.pathname}`)
+    const method = request.method;
+    const url = new URL(request.url);
+    apiLogger.request(method, url.pathname);
   })
-  .onAfterHandle(({ request }) => {
-    const timestamp = new Date().toISOString()
-    const method = request.method
-    const url = new URL(request.url)
-    console.log(`[${timestamp}] ${method} ${url.pathname} - Completed`)
-  })
+  .onAfterHandle(({ request, set }) => {
+    const method = request.method;
+    const url = new URL(request.url);
+    const status = typeof set.status === 'number' ? set.status : 200;
+    apiLogger.response(method, url.pathname, status);
+  });

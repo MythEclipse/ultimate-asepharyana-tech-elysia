@@ -102,7 +102,7 @@ export abstract class AuthService {
       await sendVerificationEmail(email, name || 'User', verificationToken)
     }
     catch (error) {
-      console.error('Failed to send verification email:', error)
+      authLogger.error('Failed to send verification email', error);
     }
 
     const newUser = await db
@@ -340,7 +340,7 @@ export abstract class AuthService {
       await sendPasswordResetEmail(email, user.name || 'User', token)
     }
     catch (error) {
-      console.error('Failed to send forgot password email:', error)
+      authLogger.error('Failed to send forgot password email', error);
     }
 
     return {

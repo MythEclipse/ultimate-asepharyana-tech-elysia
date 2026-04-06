@@ -5,7 +5,8 @@ import {
   lt,
   passwordResetTokens,
   sessions,
-} from '../../db'
+} from '../../db';
+import { systemLogger } from '../../utils/logger';
 
 export abstract class SystemService {
   /**
@@ -20,7 +21,7 @@ export abstract class SystemService {
     const db = getDb()
     const now = new Date()
 
-    console.log(`[${now.toISOString()}] [SYSTEM] Starting maintenance...`)
+    systemLogger.info('Starting system maintenance...');
 
     try {
       // 1. Cleanup Sessions
@@ -44,15 +45,16 @@ export abstract class SystemService {
         external: Math.round(memory.external / 1024 / 1024),
       }
 
-      console.log(`[${now.toISOString()}] [SYSTEM] Maintenance complete:`)
-      console.log(` - Expired Sessions deleted: ${deletedSessions[0]?.affectedRows || 0}`)
-      console.log(` - Expired Verification Tokens deleted: ${deletedEmailTokens[0]?.affectedRows || 0}`)
-      console.log(` - Expired Reset Tokens deleted: ${deletedPassTokens[0]?.affectedRows || 0}`)
-      console.log(` - Expired Cache entries deleted: ${deletedCache[0]?.affectedRows || 0}`)
-      console.log(` - Memory Usage: ${JSON.stringify(memoryMB)} MB`)
+      systemLogger.info('Maintenance complete', {
+        deletedSessions: deletedSessions[0]?.affectedRows || 0,
+        deletedEmailTokens: deletedEmailTokens[0]?.affectedRows || 0,
+        deletedPassTokens: deletedPassTokens[0]?.affectedRows || 0,
+        deletedCache: deletedCache[0]?.affectedRows || 0,
+        memoryMB,
+      });
     }
     catch (error) {
-      console.error(`[${now.toISOString()}] [SYSTEM] Maintenance ERROR:`, error)
+      systemLogger.error('Maintenance error', error);
     }
   }
 }

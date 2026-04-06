@@ -1,12 +1,13 @@
 import { swagger } from '@elysiajs/swagger'
 import Elysia from 'elysia'
 import { config } from './config'
-import { auth } from './modules/auth'
-import { system } from './modules/system'
-import { closeDb, initializeDb } from './db'
-import { getRedis } from './utils/redis'
+import { auth } from './modules/auth';
+import { system } from './modules/system';
+import { closeDb, initializeDb } from './db';
+import { getRedis } from './utils/redis';
+import { systemLogger } from './utils/logger';
 
-import { logger } from './middleware'
+import { logger } from './middleware';
 import { errorHandler } from './middleware/errorHandler'
 import { rateLimit } from './middleware/rateLimit'
 import cors from '@elysiajs/cors'
@@ -19,26 +20,26 @@ async function initializeConnections() {
   try {
     // Connect to database
     if (!isDbInitialized) {
-      initializeDb(config.databaseUrl)
-      isDbInitialized = true
-      console.log('✅ Database connected successfully')
+      initializeDb(config.databaseUrl);
+      isDbInitialized = true;
+      systemLogger.info('Database connected successfully');
     }
 
     // Connect to Redis
-    const redis = getRedis()
-    await redis.connect()
+    const redis = getRedis();
+    await redis.connect();
   }
   catch (error) {
-    console.error('Failed to initialize connections:', error)
+    systemLogger.error('Failed to initialize connections', error);
   }
 }
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down gracefully...')
-  await closeDb()
-  process.exit(0)
-})
+  systemLogger.info('Shutting down gracefully...');
+  await closeDb();
+  process.exit(0);
+});
 
 export const app = new Elysia()
   .use(system)
@@ -119,33 +120,27 @@ export const app = new Elysia()
 
 // Graceful shutdown handler
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, closing gracefully...')
+  systemLogger.info('SIGTERM received, closing gracefully...');
   try {
-    await closeDb()
-    process.exit(0)
+    await closeDb();
+    process.exit(0);
   }
   catch (error) {
-    console.error('Error during shutdown:', error)
-    process.exit(1)
+    systemLogger.error('Error during shutdown', error);
+    process.exit(1);
   }
-})
+});
 
 // Start the server
 initializeConnections().then(() => {
-  const host = process.env.HOST || '0.0.0.0'
+  const host = process.env.HOST || '0.0.0.0';
   app.listen({
     port: config.port,
     hostname: host,
-  })
+  });
 
-  console.log(
-    `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
-  )
-  console.log(`📝 Environment: ${config.env}`)
-  console.log(
-    `🔐 Auth endpoints: http://${app.server?.hostname}:${app.server?.port}/api/auth`,
-  )
-  console.log(
-    `📚 Swagger docs: http://${app.server?.hostname}:${app.server?.port}/docs`,
-  )
-})
+  systemLogger.info(`🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`);
+  systemLogger.info(`📝 Environment: ${config.env}`);
+  systemLogger.info(`🔐 Auth endpoints: http://${app.server?.hostname}:${app.server?.port}/api/auth`);
+  systemLogger.info(`📚 Swagger docs: http://${app.server?.hostname}:${app.server?.port}/docs`);
+});
