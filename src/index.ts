@@ -10,6 +10,7 @@ import { rateLimit } from './middleware/rateLimit'
 import { authRoutes } from './routes/auth'
 import { closeDb, initializeDb } from './services'
 import { getRedis } from './utils/redis'
+import { instrumentation, metricsHandler, requestCounter, requestDuration } from './utils/otel'
 
 let isDbInitialized = false
 
@@ -40,6 +41,29 @@ process.on('SIGINT', async () => {
 })
 
 export const app = new Elysia()
+  .use(instrumentation) // OpenTelemetry instrumentation
+  .derive({ as: 'global' }, () => {
+    return {
+      startTime: performance.now(),
+    }
+  })
+  .onAfterResponse({ as: 'global' }, ({ request, path, set, startTime }) => {
+    const duration = (performance.now() - startTime) / 1000
+    const method = request.method
+    const status = String(set.status || 200)
+
+    requestCounter.add(1, {
+      method,
+      path,
+      status,
+    })
+
+    requestDuration.record(duration, {
+      method,
+      path,
+      status,
+    })
+  })
   .use(errorHandler) // Global error handling
   .use(
     rateLimit({
@@ -119,6 +143,9 @@ export const app = new Elysia()
     environment: config.env,
     database: config.databaseUrl ? 'connected' : 'not configured',
   }))
+  .get('/metric', async () => {
+    return await metricsHandler()
+  })
   .use(authRoutes)
 
 // Graceful shutdown handler

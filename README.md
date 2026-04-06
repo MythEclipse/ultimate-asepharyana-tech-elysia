@@ -10,6 +10,7 @@ Elysia-based API service untuk auth, social/chat, history, image cache, dan quiz
 - Cache: Redis
 - Object Storage: MinIO / S3-compatible
 - API Docs: Swagger (`/docs`) + AsyncAPI viewer (`/docs-ws`)
+- Observability: OpenTelemetry Metrics (`/metric`)
 
 ## Prerequisites
 
@@ -82,18 +83,16 @@ bun run test
 bun run lint
 bun run check-types
 
-# quiz helpers
-bun run quiz:seed
-bun run quiz:test
+bun run check-types
 ```
 
 ## Main Endpoints
 
 - `GET /health`
+- `GET /metric` (Prometheus Metrics)
 - `GET /docs` (Swagger UI)
 - `GET /docs-ws` (AsyncAPI viewer)
 - `GET /docs-ws/asyncapi.yaml`
-- `WS /api/quiz/battle`
 
 ## Integration Test Scripts
 
@@ -109,3 +108,18 @@ chmod +x test-all-api.sh
 ```
 
 `-s` akan menjalankan server otomatis sebelum test lalu mematikannya setelah selesai.
+
+## Observability
+
+Aplikasi ini dilengkapi dengan integrasi OpenTelemetry untuk monitoring.
+
+### Metrics
+
+Metrics diekspos dalam format Prometheus pada endpoint `/metric`.
+
+Metrik yang tersedia meliputi:
+
+- **`http_requests_total`**: Total permintaan HTTP dengan label `method`, `path`, dan `status`.
+- **`http_request_duration_seconds`**: Histogram durasi permintaan HTTP dalam detik.
+
+Anda dapat memantau performa aplikasi dengan menghubungkan Prometheus server ke endpoint ini.
