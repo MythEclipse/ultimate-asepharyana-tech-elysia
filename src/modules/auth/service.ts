@@ -17,6 +17,7 @@ import { authLogger } from '../../utils/logger'
 import { signJWT, verifyJWT } from '../../utils/jwt'
 import { blacklistToken, isTokenBlacklisted } from '../../utils/redis'
 import { sanitizeEmail, sanitizeString } from '../../utils/validation'
+import { status } from 'elysia'
 import type { TAuthModel } from './model'
 
 export abstract class AuthService {
@@ -51,7 +52,7 @@ export abstract class AuthService {
     const sanitizedEmail = sanitizeEmail(email)
     if (!sanitizedEmail) {
       authLogger.registerFailed(email, 'Invalid email format')
-      throw new Error('Invalid email format')
+      throw status(400, 'Invalid email format')
     }
 
     const sanitizedName = name ? sanitizeString(name) : null
@@ -59,7 +60,7 @@ export abstract class AuthService {
     const passwordError = this.validatePassword(password)
     if (passwordError) {
       authLogger.registerFailed(sanitizedEmail, passwordError)
-      throw new Error(passwordError)
+      throw status(400, passwordError)
     }
 
     const existingUserResult = await db
@@ -70,7 +71,7 @@ export abstract class AuthService {
 
     if (existingUserResult.length > 0) {
       authLogger.registerFailed(sanitizedEmail, 'Email already exists')
-      throw new Error('Email already exists')
+      throw status(409, 'Email already exists')
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
@@ -132,13 +133,13 @@ export abstract class AuthService {
     const user = userResult[0]
     if (!user || !user.password) {
       authLogger.loginFailed(email, 'Invalid credentials')
-      throw new Error('Invalid credentials')
+      throw status(401, 'Invalid credentials')
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password)
     if (!isPasswordValid) {
       authLogger.loginFailed(email, 'Invalid credentials')
-      throw new Error('Invalid credentials')
+      throw status(401, 'Invalid credentials')
     }
 
     authLogger.loginSuccess(user.id, email)
@@ -184,10 +185,10 @@ export abstract class AuthService {
 
     const verificationToken = result[0]
     if (!verificationToken)
-      throw new Error('Invalid verification token')
+      throw status(400, 'Invalid verification token')
 
     if (verificationToken.expiresAt < new Date())
-      throw new Error('Verification token has expired')
+      throw status(400, 'Verification token has expired')
 
     await db
       .update(users)
@@ -215,11 +216,11 @@ export abstract class AuthService {
 
     const session = sessionResult[0]
     if (!session)
-      throw new Error('Invalid refresh token')
+      throw status(401, 'Invalid refresh token')
 
     if (session.expires < new Date()) {
       await db.delete(sessions).where(eq(sessions.id, session.id))
-      throw new Error('Refresh token has expired')
+      throw status(401, 'Refresh token has expired')
     }
 
     const userResult = await db
@@ -230,7 +231,7 @@ export abstract class AuthService {
 
     const user = userResult[0]
     if (!user)
-      throw new Error('User not found')
+      throw status(404, 'User not found')
 
     // Generate new session token (rotate)
     const newSessionToken = this.generateToken()
@@ -286,7 +287,7 @@ export abstract class AuthService {
       throw new Error('Reset token has already been used')
 
     if (resetToken.expiresAt < new Date())
-      throw new Error('Reset token has expired')
+      throw status(400, 'Reset token has expired')
 
     const hashedPassword = await bcrypt.hash(newPassword, 10)
 
@@ -359,11 +360,11 @@ export abstract class AuthService {
 
     const payload = ticket.getPayload()
     if (!payload)
-      throw new Error('Invalid token payload')
+      throw status(401, 'Invalid token payload')
 
     const { sub: googleId, email, name, picture } = payload
     if (!email)
-      throw new Error('Email not found in token')
+      throw status(400, 'Email not found in token')
 
     let user = (
       await db.select().from(users).where(eq(users.email, email)).limit(1)
@@ -440,38 +441,20 @@ export abstract class AuthService {
     }
   }
 
-  static async getUserProfile(authHeader: string | undefined) {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      authLogger.tokenInvalid('No token provided')
-      throw new Error('No token provided')
-    }
-
-    const token = authHeader.substring(7)
-    const isBlacklisted = await isTokenBlacklisted(token)
-    if (isBlacklisted) {
-      authLogger.tokenInvalid('Token has been revoked')
-      throw new Error('Token has been revoked')
-    }
-
-    const payload = await verifyJWT(token)
-    if (!payload) {
-      authLogger.tokenInvalid('Invalid token signature')
-      throw new Error('Invalid token')
-    }
-
-    authLogger.tokenVerified(payload.user_id)
+  static async getUserProfile(userId: string) {
+    authLogger.tokenVerified(userId)
 
     const db = getDb()
     const result = await db
       .select()
       .from(users)
-      .where(eq(users.id, payload.user_id))
+      .where(eq(users.id, userId))
       .limit(1)
 
     const user = result[0]
     if (!user) {
       authLogger.tokenInvalid('User not found in database')
-      throw new Error('User not found')
+      throw status(404, 'User not found')
     }
 
     return {
@@ -481,14 +464,13 @@ export abstract class AuthService {
     }
   }
 
-  static async logout(refreshToken: string, authHeader: string | undefined) {
+  static async logout(refreshToken: string, accessToken?: string) {
     const db = getDb()
     await db.delete(sessions).where(eq(sessions.sessionToken, refreshToken))
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7)
+    if (accessToken) {
       // Use 30 days as max expiry for blacklist since that's our token max
-      await blacklistToken(token, 30 * 24 * 3600)
+      await blacklistToken(accessToken, 30 * 24 * 3600)
     }
 
     return { success: true, message: 'Logged out successfully' }

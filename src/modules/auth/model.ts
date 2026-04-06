@@ -1,4 +1,4 @@
-import { t } from 'elysia'
+import { t, type UnwrapSchema } from 'elysia'
 
 export const AuthModel = {
   user: t.Object({
@@ -68,5 +68,6 @@ export const AuthModel = {
 
 // TypeScript helper types
 export type TAuthModel = {
-  [K in keyof typeof AuthModel]: (typeof AuthModel[K])['static']
+  [K in keyof typeof AuthModel]: UnwrapSchema<typeof AuthModel[K]>
 }
+

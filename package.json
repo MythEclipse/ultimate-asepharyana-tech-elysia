@@ -15,6 +15,7 @@
     "db:studio": "bun run drizzle-kit studio"
   },
   "dependencies": {
+    "@elysiajs/bearer": "^1.4.3",
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/cron": "^1.4.1",
     "@elysiajs/jwt": "^1.4.1",

@@ -1,15 +1,48 @@
-import { Elysia, t } from 'elysia'
-import { AuthService } from './service'
-import { AuthModel } from './model'
+import { Elysia, t, status } from 'elysia';
+import { bearer } from '@elysiajs/bearer';
+import { AuthService } from './service';
+import { AuthModel } from './model';
+import { verifyJWT } from '../../utils/jwt';
+import { isTokenBlacklisted } from '../../utils/redis';
 
-export const auth = new Elysia({ prefix: '/api/auth' })
+export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
+  .use(bearer())
   .model(AuthModel)
+  .derive({ as: 'global' }, async ({ bearer }) => {
+    if (!bearer) {
+      return {
+        userId: undefined,
+        accessToken: undefined,
+      };
+    }
+
+    const isBlacklisted = await isTokenBlacklisted(bearer);
+    if (isBlacklisted) {
+      return {
+        userId: undefined,
+        accessToken: undefined,
+      };
+    }
+
+    const payload = await verifyJWT(bearer);
+    if (!payload) {
+      return {
+        userId: undefined,
+        accessToken: undefined,
+      };
+    }
+
+    return {
+      userId: payload.user_id as string,
+      accessToken: bearer,
+    };
+  })
   .post(
     '/register',
     async ({ body, set }) => {
-      const result = await AuthService.register(body)
-      set.status = 201
-      return result
+      const result = await AuthService.register(body);
+      set.status = 201;
+      return result;
     },
     {
       body: 'registerBody',
@@ -25,7 +58,7 @@ export const auth = new Elysia({ prefix: '/api/auth' })
   .post(
     '/login',
     async ({ body }) => {
-      return await AuthService.login(body)
+      return await AuthService.login(body);
     },
     {
       body: 'loginBody',
@@ -39,7 +72,7 @@ export const auth = new Elysia({ prefix: '/api/auth' })
   .post(
     '/refresh',
     async ({ body }) => {
-      return await AuthService.refresh(body.refreshToken)
+      return await AuthService.refresh(body.refreshToken);
     },
     {
       body: 'refreshBody',
@@ -53,7 +86,7 @@ export const auth = new Elysia({ prefix: '/api/auth' })
   .post(
     '/google',
     async ({ body }) => {
-      return await AuthService.googleLogin(body.idToken)
+      return await AuthService.googleLogin(body.idToken);
     },
     {
       body: t.Object({ idToken: t.String() }),
@@ -65,22 +98,9 @@ export const auth = new Elysia({ prefix: '/api/auth' })
     },
   )
   .get(
-    '/me',
-    async ({ headers }) => {
-      return await AuthService.getUserProfile(headers.authorization)
-    },
-    {
-      response: 'authResponse',
-      detail: {
-        summary: 'Get current user profile',
-        tags: ['Auth'],
-      },
-    },
-  )
-  .get(
     '/verify',
     async ({ query }) => {
-      return await AuthService.verifyEmail(query.token)
+      return await AuthService.verifyEmail(query.token);
     },
     {
       query: 'verifyEmailBody',
@@ -94,7 +114,7 @@ export const auth = new Elysia({ prefix: '/api/auth' })
   .post(
     '/forgot-password',
     async ({ body }) => {
-      return await AuthService.forgotPassword(body.email)
+      return await AuthService.forgotPassword(body.email);
     },
     {
       body: 'forgotPasswordBody',
@@ -108,7 +128,7 @@ export const auth = new Elysia({ prefix: '/api/auth' })
   .post(
     '/reset-password',
     async ({ body }) => {
-      return await AuthService.resetPassword(body)
+      return await AuthService.resetPassword(body);
     },
     {
       body: 'resetPasswordBody',
@@ -119,17 +139,39 @@ export const auth = new Elysia({ prefix: '/api/auth' })
       },
     },
   )
-  .post(
-    '/logout',
-    async ({ body, headers }) => {
-      return await AuthService.logout(body.refreshToken, headers.authorization)
-    },
+  .guard(
     {
-      body: 'refreshBody',
-      response: 'authResponse',
-      detail: {
-        summary: 'Logout and revoke refresh token',
-        tags: ['Auth'],
+      beforeHandle({ userId }) {
+        if (!userId) throw status(401);
       },
     },
-  )
+    (app) =>
+      app
+        .get(
+          '/me',
+          async ({ userId }) => {
+            return await AuthService.getUserProfile(userId!);
+          },
+          {
+            response: 'authResponse',
+            detail: {
+              summary: 'Get current user profile',
+              tags: ['Auth'],
+            },
+          },
+        )
+        .post(
+          '/logout',
+          async ({ body, accessToken }) => {
+            return await AuthService.logout(body.refreshToken, accessToken);
+          },
+          {
+            body: 'refreshBody',
+            response: 'authResponse',
+            detail: {
+              summary: 'Logout and revoke refresh token',
+              tags: ['Auth'],
+            },
+          },
+        ),
+  );
