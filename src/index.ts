@@ -2,14 +2,8 @@ import Elysia from 'elysia';
 import cors from '@elysiajs/cors';
 import jwt from '@elysiajs/jwt';
 import { swagger } from '@elysiajs/swagger';
-import { apiRoutes } from './routes/api';
 import { authRoutes } from './routes/auth';
-import { sosmedRoutes } from './routes/sosmed';
-import { chatRoutes } from './routes/chat';
-import { quizBattleWS } from './routes/quiz-battle';
-import { userAvatarRoutes } from './routes/user-avatar';
-import { imageCacheRoutes } from './routes/image-cache';
-import { historyRoutes } from './routes/history';
+
 import { logger } from './middleware';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimit } from './middleware/rateLimit';
@@ -74,16 +68,6 @@ export const app = new Elysia()
         tags: [
           { name: 'Health', description: 'Health check endpoints' },
           { name: 'Auth', description: 'Authentication endpoints' },
-          { name: 'API', description: 'General API endpoints' },
-          {
-            name: 'Social Media',
-            description: 'Social media posts, comments, and likes',
-          },
-          { name: 'Chat', description: 'Chat rooms and messages' },
-          {
-            name: 'Quiz Battle',
-            description: 'Quiz Battle game WebSocket and REST endpoints',
-          },
         ],
         servers: [
           {
@@ -134,62 +118,8 @@ export const app = new Elysia()
     environment: config.env,
     database: config.databaseUrl ? 'connected' : 'not configured',
   }))
-  .get('/api/hello/:name', ({ params: { name } }) => ({
-    message: `Hello ${name}!`,
-  }))
-  .post('/api/echo', ({ body }) => ({
-    echo: body,
-  }))
   .use(authRoutes)
-  .use(apiRoutes)
-  .use(userAvatarRoutes)
-  .use(sosmedRoutes)
-  .use(chatRoutes)
-  .use(imageCacheRoutes)
-  .use(quizBattleWS) // Added quizBattleWS
-  .use(historyRoutes) // Added historyRoutes
-  // Serve AsyncAPI YAML
-  .get('/docs-ws/asyncapi.yaml', () => {
-    return Bun.file('./docs/asyncapi/asyncapi.yaml');
-  })
-  // Serve AsyncAPI Viewer
-  .get('/docs-ws', () => {
-    return new Response(
-      `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>AsyncAPI Documentation</title>
-          <link rel="stylesheet" href="https://unpkg.com/@asyncapi/react-component@latest/styles/default.min.css">
-        </head>
-        <body>
-          <div id="asyncapi"></div>
-          <script src="https://unpkg.com/@asyncapi/react-component@latest/browser/standalone.js"></script>
-          <script>
-            AsyncApiStandalone.render({
-              schema: {
-                url: '/docs-ws/asyncapi.yaml',
-                refParser: {
-                  mode: 'dereference'
-                }
-              },
-              config: {
-                show: {
-                  sidebar: true,
-                }
-              }
-            }, document.getElementById('asyncapi'));
-          </script>
-        </body>
-      </html>
-      `,
-      {
-        headers: {
-          'Content-Type': 'text/html',
-        },
-      },
-    );
-  });
+  ;
 
 // Graceful shutdown handler
 process.on('SIGTERM', async () => {
@@ -219,12 +149,7 @@ initializeConnections().then(() => {
     `🔐 Auth endpoints: http://${app.server?.hostname}:${app.server?.port}/api/auth`,
   );
   console.log(
-    `🎮 Quiz Battle WS: ws://${app.server?.hostname}:${app.server?.port}/api/quiz/battle`,
-  );
-  console.log(
     `📚 Swagger docs: http://${app.server?.hostname}:${app.server?.port}/docs`,
   );
-  console.log(
-    `📚 AsyncAPI docs: http://${app.server?.hostname}:${app.server?.port}/docs-ws`,
-  );
 });
+
