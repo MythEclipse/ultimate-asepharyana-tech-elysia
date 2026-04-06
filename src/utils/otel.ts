@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import { opentelemetry } from '@elysiajs/opentelemetry'
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus'
 import { metrics, ValueType } from '@opentelemetry/api'
@@ -50,7 +51,10 @@ export const metricsHandler = async () => {
         },
       }
 
-      prometheusExporter.getMetricsRequestHandler({} as any, response as any)
+      prometheusExporter.getMetricsRequestHandler(
+        {} as unknown as IncomingMessage,
+        response as unknown as ServerResponse,
+      )
     }).catch(reject)
   })
 }
