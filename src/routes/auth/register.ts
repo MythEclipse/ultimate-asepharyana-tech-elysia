@@ -6,7 +6,6 @@ import {
   emailVerificationTokens,
   eq,
   getDb,
-  quizUserStats,
   users,
 } from '../../services'
 import { sendVerificationEmail } from '../../utils/email'
@@ -24,6 +23,7 @@ function generateToken(): string {
 interface RegisterBody {
   email: string
   name?: string
+  username: string
   password: string
 }
 
@@ -34,6 +34,7 @@ export interface RegisterResponse {
     id: string
     email: string
     name: string | null
+    username: string | null
     emailVerified: Date | null
   }
 }
@@ -110,6 +111,7 @@ export const registerRoute = new Elysia()
         id: userId,
         email: sanitizedEmail,
         name: sanitizedName,
+        username: body.username,
         password: hashedPassword,
         emailVerified: null,
         image: null,
@@ -118,24 +120,6 @@ export const registerRoute = new Elysia()
       }
 
       await db.insert(users).values(newUser)
-
-      // Initialize user stats
-      await db.insert(quizUserStats).values({
-        id: `qus_${userId}`,
-        userId,
-        points: 0,
-        wins: 0,
-        losses: 0,
-        totalGames: 0,
-        experience: 0,
-        coins: 0,
-        currentStreak: 0,
-        bestStreak: 0,
-        draws: 0,
-        totalCorrectAnswers: 0,
-        totalQuestions: 0,
-        level: 1,
-      })
 
       const verificationToken = generateToken()
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
@@ -166,6 +150,7 @@ export const registerRoute = new Elysia()
           id: userId,
           email: sanitizedEmail,
           name: sanitizedName,
+          username: body.username,
           emailVerified: null,
         },
       }
@@ -175,6 +160,7 @@ export const registerRoute = new Elysia()
         email: t.String({ format: 'email' }),
         password: t.String({ minLength: 8 }),
         name: t.Optional(t.String()),
+        username: t.String({ minLength: 3 }),
       }),
     },
   )

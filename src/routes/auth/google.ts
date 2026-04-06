@@ -12,7 +12,6 @@ import {
   and,
   eq,
   getDb,
-  quizUserStats,
   sessions,
   users,
 } from '../../services'
@@ -79,24 +78,6 @@ export const googleAuth = new Elysia().post(
         }
 
         await db.insert(users).values(newUser)
-
-        // Initialize user stats
-        await db.insert(quizUserStats).values({
-          id: `qus_${userId}`,
-          userId,
-          points: 0,
-          wins: 0,
-          losses: 0,
-          totalGames: 0,
-          experience: 0,
-          coins: 0,
-          currentStreak: 0,
-          bestStreak: 0,
-          draws: 0,
-          totalCorrectAnswers: 0,
-          totalQuestions: 0,
-          level: 1,
-        })
 
         user = newUser as User
       }
