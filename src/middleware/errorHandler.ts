@@ -1,8 +1,8 @@
 import type { Elysia } from 'elysia'
-import { errorResponse } from '../utils/response'
 
 /**
  * Global error handler middleware
+ * Aligned with Best Practice unified response structure
  */
 export const errorHandler = (app: Elysia) =>
   app.onError(({ code, error, set }) => {
@@ -15,71 +15,55 @@ export const errorHandler = (app: Elysia) =>
       stack: process.env.NODE_ENV === 'development' ? errorStack : undefined,
     })
 
+    // Helper for unified error response
+    const respond = (status: number, msg: string, errCode?: string) => {
+      set.status = status
+      return {
+        success: false,
+        message: msg,
+        code: errCode || code,
+      }
+    }
+
     // Handle different error types
     switch (code) {
       case 'VALIDATION':
-        set.status = 400
-        return errorResponse(
-          'VALIDATION_ERROR',
-          'Invalid request data',
-          process.env.NODE_ENV === 'development'
-            ? { details: errorMessage }
-            : undefined,
-        )
+        return respond(400, 'Invalid request data', 'VALIDATION_ERROR')
 
       case 'NOT_FOUND':
-        set.status = 404
-        return errorResponse('NOT_FOUND', 'Resource not found')
+        return respond(404, 'Resource not found', 'NOT_FOUND')
 
       case 'PARSE':
-        set.status = 400
-        return errorResponse('PARSE_ERROR', 'Invalid request format')
+        return respond(400, 'Invalid request format', 'PARSE_ERROR')
 
       case 'INTERNAL_SERVER_ERROR':
-        set.status = 500
-        return errorResponse(
-          'INTERNAL_ERROR',
-          'An unexpected error occurred',
-          process.env.NODE_ENV === 'development'
-            ? { message: errorMessage }
-            : undefined,
-        )
+        return respond(500, 'An unexpected error occurred', 'INTERNAL_ERROR')
 
       case 'UNKNOWN':
       default:
-        // Handle custom errors
-        if (errorMessage.startsWith('Unauthorized')) {
-          set.status = 401
-          return errorResponse('UNAUTHORIZED', errorMessage)
-        }
+        // Handle custom domain errors from strings
+        if (errorMessage.startsWith('Unauthorized'))
+          return respond(401, errorMessage, 'UNAUTHORIZED')
 
-        if (errorMessage.startsWith('Forbidden')) {
-          set.status = 403
-          return errorResponse('FORBIDDEN', errorMessage)
-        }
+        if (errorMessage.startsWith('Forbidden'))
+          return respond(403, errorMessage, 'FORBIDDEN')
 
-        if (errorMessage.includes('not found')) {
-          set.status = 404
-          return errorResponse('NOT_FOUND', errorMessage)
-        }
+        if (errorMessage.includes('not found'))
+          return respond(404, errorMessage, 'NOT_FOUND')
 
-        if (errorMessage.includes('already exists')) {
-          set.status = 409
-          return errorResponse('CONFLICT', errorMessage)
-        }
+        if (errorMessage.includes('already exists'))
+          return respond(409, errorMessage, 'CONFLICT')
 
-        if (errorMessage.startsWith('Invalid')) {
-          set.status = 400
-          return errorResponse('BAD_REQUEST', errorMessage)
-        }
+        if (errorMessage.startsWith('Invalid'))
+          return respond(400, errorMessage, 'BAD_REQUEST')
 
-        // Default error response
-        set.status = 500
-        return errorResponse(
-          'INTERNAL_ERROR',
+        // Default internal error
+        return respond(
+          500,
           process.env.NODE_ENV === 'production'
             ? 'An unexpected error occurred'
             : errorMessage,
+          'INTERNAL_ERROR',
         )
     }
   })

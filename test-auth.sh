@@ -136,8 +136,8 @@ fi
 
 # 7. Token Refresh
 echo -e "\n${YELLOW}=== 7. Token Refresh ===${NC}"
-REFRESH_DATA=$(printf '{"refresh_token":"%s"}' "$REFRESH_TOKEN")
-REFRESH_RESPONSE=$(api_request POST "/api/auth/refresh-token" "$REFRESH_DATA")
+REFRESH_DATA=$(printf '{"refreshToken":"%s"}' "$REFRESH_TOKEN")
+REFRESH_RESPONSE=$(api_request POST "/api/auth/refresh" "$REFRESH_DATA")
 
 NEW_ACCESS_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.accessToken // empty')
 NEW_REFRESH_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.refreshToken // empty')
@@ -161,8 +161,9 @@ fi
 
 # 9. Logout
 echo -e "\n${YELLOW}=== 9. Logout ===${NC}"
-LOGOUT_RESPONSE=$(api_request POST "/api/auth/logout" "" "$ACCESS_TOKEN")
-# Note: Logout might not return JSON, check http status or success field if exists
+LOGOUT_DATA=$(printf '{"refreshToken":"%s"}' "$REFRESH_TOKEN")
+LOGOUT_RESPONSE=$(api_request POST "/api/auth/logout" "$LOGOUT_DATA" "$ACCESS_TOKEN")
+# Note: Logout returns JSON with success field
 if [ "$(echo "$LOGOUT_RESPONSE" | jq -r '.success // true')" = "true" ]; then
     print_status "PASS" "User logout successful"
 else

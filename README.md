@@ -10,7 +10,8 @@ Elysia-based API service untuk auth, social/chat, history, image cache, dan quiz
 - Cache: Redis
 - Object Storage: MinIO / S3-compatible
 - API Docs: Swagger (`/docs`) + AsyncAPI viewer (`/docs-ws`)
-- Observability: OpenTelemetry Metrics (`/metric`)
+- Observability: OpenTelemetry Metrics (`/metric`) & Server-Timing
+- Background Tasks: Cron jobs
 
 ## Prerequisites
 
@@ -82,8 +83,6 @@ bun run build
 bun run test
 bun run lint
 bun run check-types
-
-bun run check-types
 ```
 
 ## Main Endpoints
@@ -121,5 +120,15 @@ Metrik yang tersedia meliputi:
 
 - **`http_requests_total`**: Total permintaan HTTP dengan label `method`, `path`, dan `status`.
 - **`http_request_duration_seconds`**: Histogram durasi permintaan HTTP dalam detik.
+
+### Server-Timing
+
+Aplikasi mengirimkan header `Server-Timing` yang memungkinkan Anda melihat rincian latensi (CORS, JWT validation, Handler, dll) langsung dari tab **Timing** di browser DevTools.
+
+### Cron Jobs
+
+Terintegrasi dengan `@elysiajs/cron` untuk tugas latar belakang. Saat ini mencakup:
+
+- **System Heartbeat**: Log kesehatan sistem setiap menit.
 
 Anda dapat memantau performa aplikasi dengan menghubungkan Prometheus server ke endpoint ini.

@@ -1,16 +1,16 @@
-import cors from '@elysiajs/cors'
-import jwt from '@elysiajs/jwt'
 import { swagger } from '@elysiajs/swagger'
 import Elysia from 'elysia'
 import { config } from './config'
+import { auth } from './modules/auth'
+import { system } from './modules/system'
+import { closeDb, initializeDb } from './db'
+import { getRedis } from './utils/redis'
 
 import { logger } from './middleware'
 import { errorHandler } from './middleware/errorHandler'
 import { rateLimit } from './middleware/rateLimit'
-import { authRoutes } from './routes/auth'
-import { closeDb, initializeDb } from './services'
-import { getRedis } from './utils/redis'
-import { instrumentation, metricsHandler, requestCounter, requestDuration } from './utils/otel'
+import cors from '@elysiajs/cors'
+import jwt from '@elysiajs/jwt'
 
 let isDbInitialized = false
 
@@ -41,29 +41,7 @@ process.on('SIGINT', async () => {
 })
 
 export const app = new Elysia()
-  .use(instrumentation) // OpenTelemetry instrumentation
-  .derive({ as: 'global' }, () => {
-    return {
-      startTime: performance.now(),
-    }
-  })
-  .onAfterResponse({ as: 'global' }, ({ request, path, set, startTime }) => {
-    const duration = (performance.now() - startTime) / 1000
-    const method = request.method
-    const status = String(set.status || 200)
-
-    requestCounter.add(1, {
-      method,
-      path,
-      status,
-    })
-
-    requestDuration.record(duration, {
-      method,
-      path,
-      status,
-    })
-  })
+  .use(system)
   .use(errorHandler) // Global error handling
   .use(
     rateLimit({
@@ -137,16 +115,7 @@ export const app = new Elysia()
       health: '/health',
     },
   }))
-  .get('/health', () => ({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    environment: config.env,
-    database: config.databaseUrl ? 'connected' : 'not configured',
-  }))
-  .get('/metric', async () => {
-    return await metricsHandler()
-  })
-  .use(authRoutes)
+  .use(auth)
 
 // Graceful shutdown handler
 process.on('SIGTERM', async () => {
