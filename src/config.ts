@@ -1,5 +1,5 @@
 export const config = {
-  port: 4092,
+  port: Number(process.env.PORT) || 4092,
   env: process.env.NODE_ENV || 'development',
   isDevelopment: process.env.NODE_ENV !== 'production',
   isProduction: process.env.NODE_ENV === 'production',

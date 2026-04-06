@@ -1,4 +1,5 @@
-import { t, type UnwrapSchema } from 'elysia'
+import { t } from 'elysia'
+import type { UnwrapSchema } from 'elysia'
 
 export const SystemModel = {
   healthResponse: t.Object({

@@ -1,146 +1,109 @@
-import { swagger } from '@elysiajs/swagger'
-import Elysia from 'elysia'
+import cluster from 'node:cluster'
+import os from 'node:os'
+import process from 'node:process'
 import { config } from './config'
-import { auth } from './modules/auth';
-import { system } from './modules/system';
-import { closeDb, initializeDb } from './db';
-import { getRedis } from './utils/redis';
-import { systemLogger } from './utils/logger';
+import { shutdown, startServer } from './server'
+import { systemLogger } from './utils/logger'
 
-import { logger } from './middleware';
-import { errorHandler } from './middleware/errorHandler'
-import { rateLimit } from './middleware/rateLimit'
-import cors from '@elysiajs/cors'
-import jwt from '@elysiajs/jwt'
+/**
+ * Enhanced Cluster Entry Point
+ * Implements ElysiaJS Production Deployment Patterns
+ * https://elysiajs.com/patterns/deploy.html#cluster-mode
+ */
 
-let isDbInitialized = false
+const host = process.env.HOST || '0.0.0.0'
+const port = config.port
 
-// Initialize database and Redis connectionsa
-async function initializeConnections() {
-  try {
-    // Connect to database
-    if (!isDbInitialized) {
-      initializeDb(config.databaseUrl);
-      isDbInitialized = true;
-      systemLogger.info('Database connected successfully');
+// Only use cluster mode in production or if explicitly enabled
+// This prevents orphaned workers when using bun --watch in development
+if (config.isProduction && cluster.isPrimary) {
+  const numCPUs = os.availableParallelism()
+  systemLogger.info(`Primary process ${process.pid} is running`)
+  systemLogger.info(`Forking ${numCPUs} workers for multi-thread support...`)
+
+  systemLogger.info(`🦊 Elysia is starting at ${host}:${port}`)
+  systemLogger.info(`📝 Environment: ${config.env}`)
+  systemLogger.info(`🔐 Auth endpoints: http://${host}:${port}/api/auth`)
+  systemLogger.info(`📚 Swagger docs: http://${host}:${port}/docs`)
+
+  // Fork workers
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork()
+  }
+
+  // Handle worker exit and restart (Basic self-healing)
+  cluster.on('exit', (worker, code, signal) => {
+    // Only restart if not shutting down
+    if (cluster.isPrimary && !process.env.STOPPING) {
+      systemLogger.warn(`Worker ${worker.process.pid} died with code ${code} and signal ${signal}. Starting a new worker...`)
+      cluster.fork()
     }
+  })
 
-    // Connect to Redis
-    const redis = getRedis();
-    await redis.connect();
+  // Master graceful shutdown
+  const handleMasterShutdown = async (signal: string) => {
+    systemLogger.info(`${signal} received on Primary. Shutting down all workers...`)
+    process.env.STOPPING = 'true'
+
+    if (cluster.workers) {
+      for (const id in cluster.workers) {
+        const worker = cluster.workers[id]
+        if (worker) {
+          worker.kill(signal)
+          // Force kill if not dead in 2 seconds
+          setTimeout(() => {
+            if (worker.process.pid) {
+              try {
+                process.kill(worker.process.pid, 'SIGKILL')
+              }
+              catch {
+                // Process already dead
+              }
+            }
+          }, 2000)
+        }
+      }
+    }
+    process.exit(0)
   }
-  catch (error) {
-    systemLogger.error('Failed to initialize connections', error);
-  }
+
+  process.on('SIGINT', () => handleMasterShutdown('SIGINT'))
+  process.on('SIGTERM', () => handleMasterShutdown('SIGTERM'))
 }
+else if (!config.isProduction) {
+  // Simple single-thread execution for development
+  systemLogger.info(`Starting in development mode (single-threaded)`)
+  systemLogger.info(`🦊 Elysia is starting at ${host}:${port}`)
+  systemLogger.info(`📝 Environment: ${config.env}`)
+  systemLogger.info(`🔐 Auth endpoints: http://${host}:${port}/api/auth`)
+  systemLogger.info(`📚 Swagger docs: http://${host}:${port}/docs`)
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  systemLogger.info('Shutting down gracefully...');
-  await closeDb();
-  process.exit(0);
-});
+  startServer().catch((error) => {
+    systemLogger.error(`Failed to start server`, error)
+    process.exit(1)
+  })
+}
+else {
+  // Worker process
+  systemLogger.info(`Worker ${process.pid} is online`)
 
-export const app = new Elysia()
-  .use(system)
-  .use(errorHandler) // Global error handling
-  .use(
-    rateLimit({
-      // Global rate limit: 100 requests per minute
-      max: 100,
-      window: 60 * 1000,
-    }),
-  )
-  .use(
-    cors({
-      origin: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-      credentials: true,
-    }),
-  )
-  .use(
-    swagger({
-      path: '/docs',
-      documentation: {
-        info: {
-          title: 'ElysiaJS Auth API Documentation',
-          version: '1.0.0',
-          description:
-            'API documentation for ElysiaJS authentication service with Redis caching',
-        },
-        tags: [
-          { name: 'Health', description: 'Health check endpoints' },
-          { name: 'Auth', description: 'Authentication endpoints' },
-        ],
-        servers: [
-          {
-            url: 'https://elysia.asepharyana.tech',
-            description: 'Production server',
-          },
-          {
-            url: `http://localhost:${config.port}`,
-            description: 'Development server',
-          },
-        ],
-        components: {
-          securitySchemes: {
-            bearerAuth: {
-              type: 'http',
-              scheme: 'bearer',
-              bearerFormat: 'JWT',
-              description: 'Enter your JWT token',
-            },
-          },
-        },
-        security: [
-          {
-            bearerAuth: [],
-          },
-        ],
-      },
-    }),
-  )
-  .use(
-    jwt({
-      name: 'jwt',
-      secret: config.jwtSecret,
-    }),
-  )
-  .use(logger)
-  .get('/', () => ({
-    message: 'Welcome to ElysiaJS Auth API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      health: '/health',
-    },
-  }))
-  .use(auth)
+  // Start the server instance in each worker
+  startServer().catch((error) => {
+    systemLogger.error(`Failed to start server in worker ${process.pid}`, error)
+    process.exit(1)
+  })
 
-// Graceful shutdown handler
-process.on('SIGTERM', async () => {
-  systemLogger.info('SIGTERM received, closing gracefully...');
-  try {
-    await closeDb();
-    process.exit(0);
+  const handleWorkerShutdown = async (signal: string) => {
+    systemLogger.info(`${signal} received on worker ${process.pid}. Shutting down gracefully...`)
+    try {
+      await shutdown()
+      process.exit(0)
+    }
+    catch {
+      process.exit(1)
+    }
   }
-  catch (error) {
-    systemLogger.error('Error during shutdown', error);
-    process.exit(1);
-  }
-});
 
-// Start the server
-initializeConnections().then(() => {
-  const host = process.env.HOST || '0.0.0.0';
-  app.listen({
-    port: config.port,
-    hostname: host,
-  });
-
-  systemLogger.info(`🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`);
-  systemLogger.info(`📝 Environment: ${config.env}`);
-  systemLogger.info(`🔐 Auth endpoints: http://${app.server?.hostname}:${app.server?.port}/api/auth`);
-  systemLogger.info(`📚 Swagger docs: http://${app.server?.hostname}:${app.server?.port}/docs`);
-});
+  process.on('SIGINT', () => handleWorkerShutdown('SIGINT'))
+  process.on('SIGTERM', () => handleWorkerShutdown('SIGTERM'))
+}

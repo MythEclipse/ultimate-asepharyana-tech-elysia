@@ -14,8 +14,8 @@ import {
 } from '../../db'
 import { sendPasswordResetEmail, sendVerificationEmail } from '../../utils/email'
 import { authLogger } from '../../utils/logger'
-import { signJWT, verifyJWT } from '../../utils/jwt'
-import { blacklistToken, isTokenBlacklisted } from '../../utils/redis'
+import { signJWT } from '../../utils/jwt'
+import { blacklistToken } from '../../utils/redis'
 import { sanitizeEmail, sanitizeString } from '../../utils/validation'
 import { status } from 'elysia'
 import type { TAuthModel } from './model'
@@ -102,7 +102,7 @@ export abstract class AuthService {
       await sendVerificationEmail(email, name || 'User', verificationToken)
     }
     catch (error) {
-      authLogger.error('Failed to send verification email', error);
+      authLogger.error('Failed to send verification email', error)
     }
 
     const newUser = await db
@@ -340,7 +340,7 @@ export abstract class AuthService {
       await sendPasswordResetEmail(email, user.name || 'User', token)
     }
     catch (error) {
-      authLogger.error('Failed to send forgot password email', error);
+      authLogger.error('Failed to send forgot password email', error)
     }
 
     return {

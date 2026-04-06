@@ -1,5 +1,5 @@
-import type { Elysia } from 'elysia';
-import { apiLogger } from '../utils/logger';
+import type { Elysia } from 'elysia'
+import { apiLogger } from '../utils/logger'
 
 /**
  * Global error handler middleware
@@ -9,14 +9,24 @@ export const errorHandler = (app: Elysia) =>
   app.onError(({ code, error, set }) => {
     const errorMessage = error instanceof Error ? error.message : String(error)
     const errorStack = error instanceof Error ? error.stack : undefined
-    const errorStatus = (error as any)?.status || (error as any)?.code || (typeof code === 'number' ? code : undefined)
 
-    apiLogger.error('ERROR', 'GLOBAL_HANDLER', {
-      code,
+    // Extract status code if present on the error object
+    const errorWithStatus = error as { status?: number, code?: number | string }
+    const errorStatus = Number(
+      errorWithStatus?.status
+      || errorWithStatus?.code
+      || (typeof code === 'number' ? code : 500),
+    )
+
+    // Determine log level and verbosity based on status code
+    const isClientError = errorStatus >= 400 && errorStatus < 500
+    const logMethod = isClientError ? 'warn' : 'error'
+
+    apiLogger[logMethod]('API_ERROR', `[${code}]› ${errorMessage}`, {
       status: errorStatus,
-      message: errorMessage,
-      stack: process.env.NODE_ENV !== 'production' ? errorStack : undefined,
-    });
+      path: set.status ? undefined : 'Unresolved', // Contextual info
+      ...(isClientError ? {} : { stack: process.env.NODE_ENV !== 'production' ? errorStack : undefined }),
+    })
 
     // Helper for unified error response
     const respond = (status: number, msg: string, errCode?: string) => {
@@ -50,7 +60,7 @@ export const errorHandler = (app: Elysia) =>
 
     // 3. Pattern matching for common error messages
     const lowerMsg = errorMessage.toLowerCase()
-    
+
     if (lowerMsg.includes('unauthorized'))
       return respond(401, errorMessage, 'UNAUTHORIZED')
 

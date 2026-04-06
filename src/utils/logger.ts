@@ -1,32 +1,32 @@
-import winston from 'winston';
+import winston from 'winston'
 
 /**
  * Centralized Logger Utility
  * Powered by Winston for robust, structured logging
  */
 
-type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+type LogLevel = 'info' | 'warn' | 'error' | 'debug'
 
 interface LogContext {
-  userId?: string;
-  sessionId?: string;
-  requestId?: string;
-  ip?: string;
-  method?: string;
-  path?: string;
-  [key: string]: unknown;
+  userId?: string
+  sessionId?: string
+  requestId?: string
+  ip?: string
+  method?: string
+  path?: string
+  [key: string]: unknown
 }
 
 // Custom format for premium console output
 const consoleFormat = winston.format.printf(({ level, message, timestamp, prefix, ...metadata }) => {
-  const p = prefix || 'SYSTEM';
-  const contextStr = metadata.context ? ` ‹${metadata.context}›` : '';
-  const dataStr = metadata.data ? `\n${JSON.stringify(metadata.data, null, 2)}` : '';
-  
+  const p = prefix || 'SYSTEM'
+  const contextStr = metadata.context ? ` ‹${metadata.context}›` : ''
+  const dataStr = metadata.data ? `\n${JSON.stringify(metadata.data, null, 2)}` : ''
+
   // Format: 19:19:02 INFO  [SYSTEM] › Message
   // Using a clean separator '›' for modern feel
-  return `${timestamp} ${level.padEnd(5)} [${p}] › ${message}${contextStr}${dataStr}`;
-});
+  return `${timestamp} ${level.padEnd(5)} [${p}] › ${message}${contextStr}${dataStr}`
+})
 
 // Initialize Winston Logger
 const winstonLogger = winston.createLogger({
@@ -34,39 +34,45 @@ const winstonLogger = winston.createLogger({
   format: winston.format.combine(
     winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     winston.format.errors({ stack: true }),
-    winston.format.json()
+    winston.format.json(),
   ),
   transports: [
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
         winston.format.timestamp({ format: 'HH:mm:ss' }),
-        consoleFormat
+        consoleFormat,
       ),
     }),
   ],
-});
+})
 
 function formatContext(context?: LogContext): string {
-  if (!context || Object.keys(context).length === 0) return '';
-  const parts: string[] = [];
-  if (context.userId) parts.push(`user=${context.userId}`);
-  if (context.sessionId) parts.push(`session=${context.sessionId}`);
-  if (context.requestId) parts.push(`req=${context.requestId}`);
-  if (context.ip) parts.push(`ip=${context.ip}`);
-  if (context.method && context.path) parts.push(`${context.method} ${context.path}`);
-  return parts.length > 0 ? ` [${parts.join(', ')}]` : '';
+  if (!context || Object.keys(context).length === 0)
+    return ''
+  const parts: string[] = []
+  if (context.userId)
+    parts.push(`user=${context.userId}`)
+  if (context.sessionId)
+    parts.push(`session=${context.sessionId}`)
+  if (context.requestId)
+    parts.push(`req=${context.requestId}`)
+  if (context.ip)
+    parts.push(`ip=${context.ip}`)
+  if (context.method && context.path)
+    parts.push(`${context.method} ${context.path}`)
+  return parts.length > 0 ? ` [${parts.join(', ')}]` : ''
 }
 
 function log(level: LogLevel, prefix: string, message: string, context?: LogContext, data?: unknown): void {
-  const contextStr = formatContext(context);
+  const contextStr = formatContext(context)
   winstonLogger.log({
     level,
     prefix,
     message,
     context: contextStr,
     data,
-  });
+  })
 }
 
 // System Logger (Generic)
@@ -75,7 +81,7 @@ export const systemLogger = {
   warn: (message: string, context?: LogContext) => log('warn', 'SYSTEM', message, context),
   error: (message: string, error?: unknown, context?: LogContext) => log('error', 'SYSTEM', message, context, error),
   debug: (message: string, context?: LogContext) => log('debug', 'SYSTEM', message, context),
-};
+}
 
 // Auth Logger
 export const authLogger = {
@@ -103,7 +109,7 @@ export const authLogger = {
     log('info', 'AUTH', `Email verified for ${email}`, { userId }),
   error: (message: string, error?: unknown) =>
     log('error', 'AUTH', message, undefined, error),
-};
+}
 
 // API Logger
 export const apiLogger = {
@@ -123,7 +129,9 @@ export const apiLogger = {
     ),
   error: (method: string, path: string, error: unknown) =>
     log('error', 'API', `Error processing request`, { method, path }, error),
-};
+  info: (message: string, context?: LogContext) => log('info', 'API', message, context),
+  warn: (message: string, context?: LogContext) => log('warn', 'API', message, context),
+}
 
 // History Logger
 export const historyLogger = {
@@ -133,7 +141,7 @@ export const historyLogger = {
     log('error', 'HISTORY', `Failed to fetch history`, { userId }, error),
   error: (message: string, error?: unknown) =>
     log('error', 'HISTORY', message, undefined, error),
-};
+}
 
 // Chat Logger
 export const chatLogger = {
@@ -149,7 +157,7 @@ export const chatLogger = {
     log('info', 'CHAT', `User left room ${roomId}`, { userId }),
   error: (action: string, error: unknown) =>
     log('error', 'CHAT', `Error: ${action}`, undefined, error),
-};
+}
 
 // WebSocket Logger
 export const wsLogger = {
@@ -171,7 +179,7 @@ export const wsLogger = {
     log('error', 'WS', `Error`, { sessionId }, error),
   authenticated: (sessionId: string, userId: string, username: string) =>
     log('info', 'WS', `User authenticated: ${username}`, { sessionId, userId }),
-};
+}
 
 // Friend System Logger
 export const friendLogger = {
@@ -201,7 +209,7 @@ export const friendLogger = {
     log('info', 'FRIEND', `Match invite rejected`, { userId }),
   error: (action: string, error: unknown) =>
     log('error', 'FRIEND', `Error: ${action}`, undefined, error),
-};
+}
 
 // Match/Game Logger
 export const matchLogger = {
@@ -232,7 +240,7 @@ export const matchLogger = {
     ),
   error: (matchId: string, error: unknown) =>
     log('error', 'MATCH', `Error in match ${matchId}`, undefined, error),
-};
+}
 
 // Queue Logger
 export const queueLogger = {
@@ -254,7 +262,7 @@ export const queueLogger = {
     log('info', 'QUEUE', `Queue timeout for user`, { userId }),
   error: (message: string, error?: unknown) =>
     log('error', 'QUEUE', message, undefined, error),
-};
+}
 
 // Leaderboard Logger
 export const leaderboardLogger = {
@@ -268,7 +276,7 @@ export const leaderboardLogger = {
     log('debug', 'LEADERBOARD', `Updated user points: ${points}`, { userId }),
   error: (action: string, error: unknown) =>
     log('error', 'LEADERBOARD', `Error: ${action}`, undefined, error),
-};
+}
 
 // Lobby Logger
 export const lobbyLogger = {
@@ -283,7 +291,7 @@ export const lobbyLogger = {
   closed: (lobbyId: string) => log('info', 'LOBBY', `Lobby closed: ${lobbyId}`),
   error: (lobbyId: string, error: unknown) =>
     log('error', 'LOBBY', `Error in lobby ${lobbyId}`, undefined, error),
-};
+}
 
 export default {
   system: systemLogger,
@@ -297,4 +305,4 @@ export default {
   queue: queueLogger,
   leaderboard: leaderboardLogger,
   lobby: lobbyLogger,
-};
+}

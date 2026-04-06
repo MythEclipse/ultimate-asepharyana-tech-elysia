@@ -5,8 +5,8 @@ import {
   lt,
   passwordResetTokens,
   sessions,
-} from '../../db';
-import { systemLogger } from '../../utils/logger';
+} from '../../db'
+import { systemLogger } from '../../utils/logger'
 
 export abstract class SystemService {
   /**
@@ -21,18 +21,18 @@ export abstract class SystemService {
     const db = getDb()
     const now = new Date()
 
-    systemLogger.info('Starting system maintenance...');
+    systemLogger.info('Starting system maintenance...')
 
     try {
       // 1. Cleanup Sessions
       const deletedSessions = await db.delete(sessions).where(lt(sessions.expires, now))
-      
+
       // 2. Cleanup Email Verification Tokens
       const deletedEmailTokens = await db.delete(emailVerificationTokens).where(lt(emailVerificationTokens.expiresAt, now))
-      
+
       // 3. Cleanup Password Reset Tokens
       const deletedPassTokens = await db.delete(passwordResetTokens).where(lt(passwordResetTokens.expiresAt, now))
-      
+
       // 4. Cleanup Image Cache
       const deletedCache = await db.delete(imageCache).where(lt(imageCache.expiresAt, now))
 
@@ -51,10 +51,10 @@ export abstract class SystemService {
         deletedPassTokens: deletedPassTokens[0]?.affectedRows || 0,
         deletedCache: deletedCache[0]?.affectedRows || 0,
         memoryMB,
-      });
+      })
     }
     catch (error) {
-      systemLogger.error('Maintenance error', error);
+      systemLogger.error('Maintenance error', error)
     }
   }
 }

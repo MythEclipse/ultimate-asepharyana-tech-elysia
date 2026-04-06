@@ -1,7 +1,7 @@
-import Redis from 'ioredis';
-import { systemLogger } from './logger';
+import Redis from 'ioredis'
+import { systemLogger } from './logger'
 
-let redis: Redis | null = null;
+let redis: Redis | null = null
 
 export function getRedis(): Redis {
   if (redis) {
@@ -16,12 +16,12 @@ export function getRedis(): Redis {
   })
 
   redis.on('connect', () => {
-    systemLogger.info('Connected to Redis');
-  });
+    systemLogger.info('Connected to Redis')
+  })
 
   redis.on('error', (err) => {
-    systemLogger.error('Redis error', err);
-  });
+    systemLogger.error('Redis error', err)
+  })
 
   return redis
 }
@@ -42,8 +42,8 @@ export async function isTokenBlacklisted(token: string): Promise<boolean> {
 
 export async function closeRedis(): Promise<void> {
   if (redis) {
-    await redis.quit();
-    redis = null;
-    systemLogger.info('Redis connection closed');
+    await redis.quit()
+    redis = null
+    systemLogger.info('Redis connection closed')
   }
 }

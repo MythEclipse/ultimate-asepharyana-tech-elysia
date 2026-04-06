@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test'
-import { app } from './index'
+import { app } from './server'
 
 describe('Elysia Server', () => {
   it('should return welcome message', async () => {
     const response = await app
       .handle(new Request('http://localhost/'))
       .then(res => res.json())
-    
+
     expect(response).toHaveProperty('message', 'Welcome to ElysiaJS Auth API')
     expect(response).toHaveProperty('version', '1.0.0')
   })
@@ -15,7 +15,7 @@ describe('Elysia Server', () => {
     const response = await app
       .handle(new Request('http://localhost/health'))
       .then(res => res.json())
-    
+
     expect(response).toHaveProperty('status', 'ok')
     expect(response).toHaveProperty('timestamp')
     expect(response).toHaveProperty('environment')
@@ -26,7 +26,7 @@ describe('Elysia Server', () => {
     const response = await app
       .handle(new Request('http://localhost/api/auth/me'))
       .then(res => res.status)
-    
+
     expect(response).toBe(401)
   })
 
@@ -34,7 +34,7 @@ describe('Elysia Server', () => {
     const response = await app
       .handle(new Request('http://localhost/api/non-existent'))
       .then(res => res.status)
-    
+
     expect(response).toBe(404)
   })
 })

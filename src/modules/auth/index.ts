@@ -1,9 +1,9 @@
-import { Elysia, t, status } from 'elysia';
-import { bearer } from '@elysiajs/bearer';
-import { AuthService } from './service';
-import { AuthModel } from './model';
-import { verifyJWT } from '../../utils/jwt';
-import { isTokenBlacklisted } from '../../utils/redis';
+import { Elysia, status, t } from 'elysia'
+import { bearer } from '@elysiajs/bearer'
+import { AuthService } from './service'
+import { AuthModel } from './model'
+import { verifyJWT } from '../../utils/jwt'
+import { isTokenBlacklisted } from '../../utils/redis'
 
 export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
   .use(bearer())
@@ -13,36 +13,36 @@ export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
       return {
         userId: undefined,
         accessToken: undefined,
-      };
+      }
     }
 
-    const isBlacklisted = await isTokenBlacklisted(bearer);
+    const isBlacklisted = await isTokenBlacklisted(bearer)
     if (isBlacklisted) {
       return {
         userId: undefined,
         accessToken: undefined,
-      };
+      }
     }
 
-    const payload = await verifyJWT(bearer);
+    const payload = await verifyJWT(bearer)
     if (!payload) {
       return {
         userId: undefined,
         accessToken: undefined,
-      };
+      }
     }
 
     return {
       userId: payload.user_id as string,
       accessToken: bearer,
-    };
+    }
   })
   .post(
     '/register',
     async ({ body, set }) => {
-      const result = await AuthService.register(body);
-      set.status = 201;
-      return result;
+      const result = await AuthService.register(body)
+      set.status = 201
+      return result
     },
     {
       body: 'registerBody',
@@ -58,7 +58,7 @@ export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
   .post(
     '/login',
     async ({ body }) => {
-      return await AuthService.login(body);
+      return await AuthService.login(body)
     },
     {
       body: 'loginBody',
@@ -72,7 +72,7 @@ export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
   .post(
     '/refresh',
     async ({ body }) => {
-      return await AuthService.refresh(body.refreshToken);
+      return await AuthService.refresh(body.refreshToken)
     },
     {
       body: 'refreshBody',
@@ -86,7 +86,7 @@ export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
   .post(
     '/google',
     async ({ body }) => {
-      return await AuthService.googleLogin(body.idToken);
+      return await AuthService.googleLogin(body.idToken)
     },
     {
       body: t.Object({ idToken: t.String() }),
@@ -100,7 +100,7 @@ export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
   .get(
     '/verify',
     async ({ query }) => {
-      return await AuthService.verifyEmail(query.token);
+      return await AuthService.verifyEmail(query.token)
     },
     {
       query: 'verifyEmailBody',
@@ -114,7 +114,7 @@ export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
   .post(
     '/forgot-password',
     async ({ body }) => {
-      return await AuthService.forgotPassword(body.email);
+      return await AuthService.forgotPassword(body.email)
     },
     {
       body: 'forgotPasswordBody',
@@ -128,7 +128,7 @@ export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
   .post(
     '/reset-password',
     async ({ body }) => {
-      return await AuthService.resetPassword(body);
+      return await AuthService.resetPassword(body)
     },
     {
       body: 'resetPasswordBody',
@@ -142,15 +142,16 @@ export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
   .guard(
     {
       beforeHandle({ userId }) {
-        if (!userId) throw status(401);
+        if (!userId)
+          throw status(401)
       },
     },
-    (app) =>
+    app =>
       app
         .get(
           '/me',
           async ({ userId }) => {
-            return await AuthService.getUserProfile(userId!);
+            return await AuthService.getUserProfile(userId!)
           },
           {
             response: 'authResponse',
@@ -163,7 +164,7 @@ export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
         .post(
           '/logout',
           async ({ body, accessToken }) => {
-            return await AuthService.logout(body.refreshToken, accessToken);
+            return await AuthService.logout(body.refreshToken, accessToken)
           },
           {
             body: 'refreshBody',
@@ -174,4 +175,4 @@ export const auth = new Elysia({ name: 'auth', prefix: '/api/auth' })
             },
           },
         ),
-  );
+  )

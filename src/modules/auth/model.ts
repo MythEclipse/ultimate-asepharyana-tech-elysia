@@ -1,4 +1,5 @@
-import { t, type UnwrapSchema } from 'elysia'
+import { t } from 'elysia'
+import type { UnwrapSchema } from 'elysia'
 
 export const AuthModel = {
   user: t.Object({
@@ -70,4 +71,3 @@ export const AuthModel = {
 export type TAuthModel = {
   [K in keyof typeof AuthModel]: UnwrapSchema<typeof AuthModel[K]>
 }
-

@@ -1,10 +1,10 @@
-import cron from '@elysiajs/cron';
-import serverTiming from '@elysiajs/server-timing';
-import { Elysia } from 'elysia';
-import { config } from '../../config';
-import { instrumentation, metricsHandler, requestCounter, requestDuration } from '../../utils/otel';
-import { SystemService } from './service';
-import { SystemModel } from './model';
+import cron from '@elysiajs/cron'
+import serverTiming from '@elysiajs/server-timing'
+import { Elysia } from 'elysia'
+import { config } from '../../config'
+import { instrumentation, metricsHandler, requestCounter, requestDuration } from '../../utils/otel'
+import { SystemService } from './service'
+import { SystemModel } from './model'
 
 export const system = new Elysia({ name: 'system' })
   .model(SystemModel)
@@ -23,12 +23,12 @@ export const system = new Elysia({ name: 'system' })
     startTime: performance.now(),
   }))
   .onAfterResponse({ as: 'global' }, ({ request, path, set, startTime }) => {
-    const duration = (performance.now() - (startTime as number)) / 1000;
-    const method = request.method;
-    const status = String(set.status || 200);
+    const duration = (performance.now() - (startTime as number)) / 1000
+    const method = request.method
+    const status = String(set.status || 200)
 
-    requestCounter.add(1, { method, path, status });
-    requestDuration.record(duration, { method, path, status });
+    requestCounter.add(1, { method, path, status })
+    requestDuration.record(duration, { method, path, status })
   })
   .get('/health', () => ({
     status: 'ok',
