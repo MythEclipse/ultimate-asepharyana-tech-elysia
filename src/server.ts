@@ -11,6 +11,7 @@ import { logger } from './middleware'
 import { errorHandler } from './middleware/errorHandler'
 import { rateLimit } from './middleware/rateLimit'
 import cors from '@elysiajs/cors'
+import { register } from './utils/prometheus'
 import jwt from '@elysiajs/jwt'
 
 let isDbInitialized = false
@@ -41,6 +42,45 @@ export async function initializeConnections() {
  * Main Elysia Application Instance
  */
 export const app = new Elysia()
+  .onRequest(({ request }) => {
+    // Store request start time
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(request as any).startTime = performance.now()
+  })
+  .onAfterResponse(({ request, path, set }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const startTime = (request as any).startTime
+    if (startTime) {
+      const duration = (performance.now() - startTime) / 1000
+      const route = path || 'unknown'
+      const status = set.status || 200
+
+      // Record metrics
+      // @ts-expect-error - Custom metrics registry
+      register.getSingleMetric('elysia_http_requests_total')?.inc({
+        method: request.method,
+        route,
+        status_code: status,
+      })
+
+      // @ts-expect-error - Custom metrics registry
+      register.getSingleMetric('elysia_http_request_duration_seconds')?.observe(
+        {
+          method: request.method,
+          route,
+          status_code: status,
+        },
+        duration,
+      )
+    }
+  })
+  .get('/metrics', async () => {
+    return new Response(await register.metrics(), {
+      headers: {
+        'Content-Type': register.contentType,
+      },
+    })
+  })
   .use(system)
   .use(errorHandler)
   .use(
@@ -112,6 +152,7 @@ export const app = new Elysia()
     endpoints: {
       auth: '/api/auth',
       health: '/health',
+      metrics: '/metrics',
     },
   }))
   .use(auth)
