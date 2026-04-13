@@ -1,8 +1,20 @@
+const resolvedEnv = (() => {
+  const nodeEnv = process.env.NODE_ENV
+  if (nodeEnv)
+    return nodeEnv
+
+  const argv = process.argv.join(' ')
+  if (argv.includes('dist/index') || argv.includes('/dist/') || argv.includes('\\dist\\'))
+    return 'production'
+
+  return 'development'
+})()
+
 export const config = {
   port: Number(process.env.PORT) || 4092,
-  env: process.env.NODE_ENV || 'development',
-  isDevelopment: process.env.NODE_ENV !== 'production',
-  isProduction: process.env.NODE_ENV === 'production',
+  env: resolvedEnv,
+  isDevelopment: resolvedEnv !== 'production',
+  isProduction: resolvedEnv === 'production',
   jwtSecret: process.env.JWT_SECRET || 'default_secret_change_this',
   databaseUrl: process.env.DATABASE_URL || '',
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',

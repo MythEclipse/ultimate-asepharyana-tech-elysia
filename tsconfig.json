@@ -2,12 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
-    "baseUrl": ".",
+    "rootDir": "./src",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "paths": {
-      "@asepharyana/services": ["./src/services/index.ts"]
-    },
     "types": ["bun-types"],
     "strict": true,
     "outDir": "./dist"

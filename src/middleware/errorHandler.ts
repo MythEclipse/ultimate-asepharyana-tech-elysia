@@ -1,5 +1,5 @@
 import type { Elysia } from 'elysia'
-import { apiLogger } from '../utils/logger'
+import { apiLogger, systemLogger } from '../utils/logger'
 
 /**
  * Global error handler middleware
@@ -20,13 +20,18 @@ export const errorHandler = (app: Elysia) =>
 
     // Determine log level and verbosity based on status code
     const isClientError = errorStatus >= 400 && errorStatus < 500
-    const logMethod = isClientError ? 'warn' : 'error'
-
-    apiLogger[logMethod]('API_ERROR', `[${code}]› ${errorMessage}`, {
-      status: errorStatus,
-      path: set.status ? undefined : 'Unresolved', // Contextual info
-      ...(isClientError ? {} : { stack: process.env.NODE_ENV !== 'production' ? errorStack : undefined }),
-    })
+    const baseMessage = `API_ERROR [${errorStatus}] [${code}]› ${errorMessage}`
+    if (isClientError) {
+      apiLogger.warn(baseMessage)
+    }
+    else {
+      systemLogger.error(
+        baseMessage,
+        process.env.NODE_ENV !== 'production'
+          ? { stack: errorStack }
+          : undefined,
+      )
+    }
 
     // Helper for unified error response
     const respond = (status: number, msg: string, errCode?: string) => {
