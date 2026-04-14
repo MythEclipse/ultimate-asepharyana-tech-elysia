@@ -111,6 +111,7 @@ export const app = new Elysia()
         tags: [
           { name: 'Health', description: 'Health check endpoints' },
           { name: 'Auth', description: 'Authentication endpoints' },
+          { name: 'Upload', description: 'Image upload endpoints' },
         ],
         servers: [
           {
@@ -287,6 +288,12 @@ export const app = new Elysia()
       status: externalResponse.status,
       headers: { 'Content-Type': externalContentType },
     })
+  }, {
+    detail: {
+      summary: 'Upload an image file',
+      description: 'Public uploader endpoint that forwards a single image file to the picser-two upload service. Request must use multipart/form-data with a field named `file` containing the image.',
+      tags: ['Upload'],
+    },
   })
 
 /**

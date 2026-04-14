@@ -78,9 +78,9 @@ describe('Elysia Server', () => {
     const formData = new FormData()
     formData.append('file', file)
 
-    globalThis.fetch = async () => {
+    globalThis.fetch = (async () => {
       throw new Error('network error')
-    }
+    }) as unknown as typeof fetch
 
     try {
       const response = await app.handle(new Request('http://localhost/api/upload', {
