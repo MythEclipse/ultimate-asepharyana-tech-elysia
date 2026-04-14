@@ -15,6 +15,12 @@ import cors from '@elysiajs/cors'
 const uploadRateLimitStore = new Map<string, { count: number; resetTime: number }>()
 const UPLOAD_RATE_LIMIT_MAX = 5
 const UPLOAD_RATE_LIMIT_WINDOW = 60 * 1000
+const uploadEndpoints = [
+  'https://picser-two.vercel.app/api/upload',
+  'https://picser.asepharyana.tech/api/upload',
+  'https://picser-mytheclipse8647-ahoqi9ef.leapcell.dev/api/upload',
+  'https://picser.pages.dev/api/upload',
+]
 import { httpRequestDurationSeconds, httpRequestsTotal, registry } from './utils/prometheus'
 import jwt from '@elysiajs/jwt'
 
@@ -251,25 +257,38 @@ export const app = new Elysia()
     const abortController = new AbortController()
     const timeout = setTimeout(() => abortController.abort(), 15_000)
 
-    let externalResponse: Response
-    try {
-      externalResponse = await fetch('https://picser-two.vercel.app/api/upload', {
-        method: 'POST',
-        body: uploadForm,
-        headers: {
-          Accept: 'application/json',
-        },
-        signal: abortController.signal,
-      })
+    let externalResponse: Response | undefined
+    let lastError: Error | undefined
+
+    for (const endpoint of uploadEndpoints) {
+      try {
+        externalResponse = await fetch(endpoint, {
+          method: 'POST',
+          body: uploadForm,
+          headers: {
+            Accept: 'application/json',
+          },
+          signal: abortController.signal,
+        })
+
+        if (externalResponse.ok) {
+          break
+        }
+
+        lastError = new Error(`Upload failed with status ${externalResponse.status} at ${endpoint}`)
+      }
+      catch (error) {
+        lastError = error instanceof Error ? error : new Error('External upload request failed')
+      }
     }
-    catch {
+
+    clearTimeout(timeout)
+
+    if (!externalResponse) {
       return new Response(JSON.stringify({ error: 'External upload service unavailable' }), {
         status: 502,
         headers: { 'Content-Type': 'application/json' },
       })
-    }
-    finally {
-      clearTimeout(timeout)
     }
 
     const externalContentType = externalResponse.headers.get('content-type') ?? 'application/octet-stream'
@@ -278,9 +297,10 @@ export const app = new Elysia()
       : await externalResponse.arrayBuffer()
 
     if (!externalResponse.ok) {
-      return new Response(body, {
+      const message = lastError?.message ?? 'External upload service unavailable'
+      return new Response(JSON.stringify({ error: message }), {
         status: externalResponse.status,
-        headers: { 'Content-Type': externalContentType },
+        headers: { 'Content-Type': 'application/json' },
       })
     }
 
@@ -291,7 +311,7 @@ export const app = new Elysia()
   }, {
     detail: {
       summary: 'Upload an image file',
-      description: 'Public uploader endpoint that forwards a single image file to the picser-two upload service. Request must use multipart/form-data with a field named `file` containing the image.',
+      description: 'Public uploader endpoint that forwards a single image file to one of multiple backup upload services. Request must use multipart/form-data with a field named `file` containing the image.',
       tags: ['Upload'],
     },
   })

@@ -72,6 +72,47 @@ describe('Elysia Server', () => {
     }
   })
 
+  it('should use a backup upload URL if the primary service fails', async () => {
+    const originalFetch = globalThis.fetch
+    const file = new File(['test-data'], 'upload.png', { type: 'image/png' })
+    const formData = new FormData()
+    formData.append('file', file)
+
+    let attempt = 0
+    globalThis.fetch = (async (input, init) => {
+      attempt++
+      if (attempt === 1) {
+        return new Response(JSON.stringify({ error: 'primary down' }), {
+          status: 502,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+
+      expect(input).toBe('https://picser.asepharyana.tech/api/upload')
+      expect(init?.method).toBe('POST')
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }) as typeof fetch
+
+    try {
+      const response = await app.handle(new Request('http://localhost/api/upload', {
+        method: 'POST',
+        body: formData,
+      }))
+
+      expect(response.status).toBe(201)
+      const payload = await response.json()
+      expect(payload).toEqual({ success: true })
+      expect(attempt).toBe(2)
+    }
+    finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
   it('should return 502 when external upload fails', async () => {
     const originalFetch = globalThis.fetch
     const file = new File(['test-data'], 'upload.png', { type: 'image/png' })
